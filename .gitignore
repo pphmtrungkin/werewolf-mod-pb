@@ -12,6 +12,30 @@ dist
 dist-ssr
 *.local
 
+# Environment files (keep secrets safe)
+.env
+.env.local
+.env.*.local
+
+# =========================
+# PocketBase
+# =========================
+# Ignore live database and runtime data
+pocketbase/pb_data/
+pocketbase/logs/
+pocketbase/*.db
+
+# Keep schema migrations versioned (optional)
+!pocketbase/pb_migrations/
+!pocketbase/pb_data/.gitkeep
+
+# Ignore PocketBase binary backups
+pocketbase/pocketbase_old*
+pocketbase/pocketbase.exe
+pocketbase/pocketbase-macos
+pocketbase/pocketbase-linux
+pocketbase/pocketbase-win.exe
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
