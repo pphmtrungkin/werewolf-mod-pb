@@ -2,6 +2,7 @@ import React, { useState, useEffect, useContext } from "react";
 import StyleIcon from "@mui/icons-material/Style";
 import { useNavigate } from "react-router";
 import { UserContext } from "./UserContext";
+import { IconButton } from "@mui/material";
 const Spinner = () => {
   return (
     <div role="status">
@@ -31,13 +32,19 @@ const Nav = () => {
   return (
     <div className="fixed top-0 w-screen min-h-20 z-10 flex items-center justify-between flex-wrap bg-[#241F21] px-40 py-4">
       <div className="px-2">
-        <button
-          type="button"
-          className="hover:scale-125 transition"
-          onClick={() => navigate("/setup")}
+        <IconButton
+          onClick={() => {
+            navigate("/");
+          }}
+          sx={{
+            ":hover": {
+              scale: 1.2,
+              transition: "scale fadeIn",
+            }
+          }}
         >
-          <StyleIcon fontSize="large" sx={{ color: "white" }} />
-        </button>
+          <StyleIcon className="text-white" fontSize="large" />
+        </IconButton>
       </div>
       <div className="flex">
         <button

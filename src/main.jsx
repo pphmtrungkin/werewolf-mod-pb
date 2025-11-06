@@ -75,9 +75,7 @@ function App() {
   return (
     <React.StrictMode>
       <UserProvider>
-        <DeckProvider>
           <RouterProvider router={router} />
-        </DeckProvider>
       </UserProvider>
     </React.StrictMode>
   );
