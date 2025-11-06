@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState, useContext } from "react";
-import { Outlet } from "react-router-dom";
-import { supabase } from "../supabase";
-import { useNavigate } from "react-router-dom";
+import { Outlet } from "react-router";
+import { useNavigate } from "react-router";
 import { UserContext } from "../components/UserContext";
 
 const Spinner = () => {

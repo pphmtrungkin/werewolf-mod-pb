@@ -1,8 +1,7 @@
 import React, { useContext, useState, useEffect, useCallback, useMemo } from "react";
-import { supabase } from "../supabase";
 import DeckContext from "../components/DeckContext";
 import UserContext from "../components/UserContext";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { Select, Option, input } from "@material-tailwind/react";
 import Spinner from "../components/Spinner";
 

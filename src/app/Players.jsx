@@ -1,9 +1,8 @@
 import React, { useEffect, useState } from "react";
-import { Outlet } from "react-router-dom";
-import { supabase } from "../supabase";
+import { Outlet } from "react-router";
 import UserContext from "../components/UserContext";
 import { useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 
 export default function Players() {
   const [showModal, setShowModal] = useState(false);

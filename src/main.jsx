@@ -1,15 +1,14 @@
 import React, {useState, useEffect} from 'react'
 import ReactDOM from 'react-dom/client'
-import './index.css'
 import {
   createBrowserRouter,
   BrowserRouter,
   RouterProvider,
   Routes, Route
-} from "react-router-dom";
+} from "react-router";
 import Welcome from './app/Welcome';
-import SignUp from './app/SignUp';
-import Login from './app/Login';
+import SignUp from './app/auth/SignUp';
+import Login from './app/auth/Login';
 import SetUp from './app/SetUp';
 import Nav from './components/Nav';
 import Account from './app/Account';
@@ -18,6 +17,8 @@ import Game from './app/Game'
 import Players from './app/Players'
 import {DeckProvider} from './components/DeckContext'
 import { UserProvider } from './components/UserContext';
+import AuthLayout from './app/auth/AuthLayout';
+
 function App() {
   const router = createBrowserRouter([
     {
@@ -25,12 +26,12 @@ function App() {
       element: <Welcome />,
     },
     {
-      path: "/signup",
-      element: <SignUp />,
-    },
-    {
-      path: "/login",
-      element: <Login />,
+      path: "/auth",
+      Component: AuthLayout,
+      children: [
+        { path: "signup", element: <SignUp /> },
+        { path: "login", element: <Login /> },
+      ],
     },
     {
       path: "/setup",

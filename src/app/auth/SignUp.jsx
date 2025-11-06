@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import { supabase } from "../supabase";
-import { useNavigate } from "react-router-dom";
+import { registerUser } from "../../pocketbase";
+import { useNavigate } from "react-router";
 const SignUp = () => {
   
   //Set up navigate
@@ -21,20 +21,20 @@ const SignUp = () => {
     if(password !== confirmPass){
       alert("Passwords do not match");
     } else {
-      setLoading(true);
-      const { data, error } = await supabase.auth.signUp({
-        email: email,
-        password: password,
-        options: {
-          data: { full_name: full_name, username: username },
-        },
-      });
-      setLoading(false);
-      if (error) {
-        alert(error.message);
-      } else {
-        alert("Check your email for the confirmation link!");
+      try {
+        setLoading(true);
+        await registerUser(
+          email,
+          password,
+          confirmPass,
+          "" // default empty avatar URL
+        );
+        alert("Account created successfully! Please login.");
         navigate("/login");
+      } catch (error) {
+        alert(error.message);
+      } finally {
+        setLoading(false);
       }
     }
   };

@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { supabase } from '../supabase';
 import { TrendingUpSharp } from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
+import Pocketbase from 'pocketbase';
 // Create a context
 export const UserContext = createContext();
 
@@ -10,26 +10,23 @@ export const UserProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [avatar, setAvatar] = useState('');
   const [loading, setLoading] = useState(false);
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        setUser(session.user)
-        setAvatar(session.user.user_metadata.avatar_url)
-      }
-    })
+  const pb = new Pocketbase('http://localhost:8090'); // Replace with your PocketBase URL
 
-    supabase.auth.onAuthStateChange((_event, session) => {
-      if (session) {
-        setUser(session.user)
-        setAvatar(session.user.user_metadata.avatar_url)
-      } else {
-        setUser(null)
+  useEffect(() => {
+    async function loadUser() {
+      setLoading(true);
+      const authData = await pb.collection('users').authRefresh();
+      if (pb.authStore.isValid) {
+        setUser(pb.authStore.model);
+        console.log('User authenticated:', pb.authStore.model);
       }
-    })
-    setLoading(false)
+      setLoading(false);
+    }
+    loadUser();
+
   }, []);
   return (
-    <UserContext.Provider value={{user, avatar, loading}}>
+    <UserContext.Provider value={{user, setUser, avatar, loading}}>
       {children}
     </UserContext.Provider>
   );

@@ -1,16 +1,18 @@
 import React, { useEffect } from "react";
 import { useState, useContext } from "react";
 import { DeckContext } from "../components/DeckContext";
-import { supabase } from "../supabase";
 import SideButton from "../components/SideButton";
 import Card from "../components/Card";
-import { useNavigate, Outlet } from "react-router-dom";
+import { useNavigate, Outlet } from "react-router";
 import UserContext from "../components/UserContext";
 import Spinner from "../components/Spinner";
+import { useCards } from "../hooks/useCards";
+import { useSides } from "../hooks/useSides";
 
 export default function SetUp() {
-  const [cards, setCards] = useState([]);
-  const [sides, setSides] = useState([]);
+  // cards and sides are provided by hooks (encapsulate fetching + state)
+  const { cards, loading: cardsLoading, error: cardsError } = useCards();
+  const { sides, loading: sidesLoading, error: sidesError } = useSides();
 
   const navigate = useNavigate();
 
@@ -75,51 +77,7 @@ export default function SetUp() {
     ).length;
   };
 
-  useEffect(() => {
-    async function getCards() {
-      const { data, error } = await supabase
-        .from("cards")
-        .select("*")
-        .order("id", { ascending: true });
-
-      if (error) {
-        console.log("Error fetching cards: ", error);
-        return;
-      }
-
-      if (data) {
-        setCards(data);
-        console.log("Cards: ", data);
-      }
-    }
-
-    async function getSides() {
-      const { data, error } = await supabase
-        .from("sides")
-        .select("*")
-        .order("id", { ascending: true });
-
-      if (error) {
-        console.log("Error fetching sides: ", error);
-        return;
-      }
-
-      if (data) {
-        setSides(data);
-        console.log("Sides: ", data);
-      }
-    }
-
-
-    if (cards.length === 0) {
-      getCards();
-    }
-
-    if (sides.length === 0) {
-      getSides();
-    }
-
-  }, []);
+  // data fetching now handled by hooks (useCards/useSides)
 
   useEffect(() => {
     async function getTimer() {

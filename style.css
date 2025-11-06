@@ -1,0 +1,27 @@
+@import "tailwindcss";
+@import 'animate.css';
+
+html, body, #root {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    box-sizing: border-box;
+}
+
+body {
+    background-color: #242020;
+    color: #ffffff;
+    font-family: 'Montserrat', sans-serif;
+    overflow-x: hidden;
+}
+
+#root {
+    display: flex;
+    flex-direction: column;
+}
+
+button {
+    background-color: #ffffff;
+    color: #000000;
+}

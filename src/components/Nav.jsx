@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useContext } from "react";
 import StyleIcon from "@mui/icons-material/Style";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { UserContext } from "./UserContext";
 const Spinner = () => {
   return (
