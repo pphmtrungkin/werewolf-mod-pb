@@ -8,21 +8,24 @@ export default function Card({
 }) {
   const url = import.meta.env.VITE_POCKETBASE_URL + '/api/files/cards/' + id + '/' + img;
   return (
-    <div className="relative inline-block border-none m-2">
-      <button onClick={onSelect} className={`relative border-none p-0 bg-none ${selected ? 'grayscale-0' : 'grayscale'}`}>
-        <div className="isolate">
+    <div className="relative w-full p-2 outline-none">
+      <button
+        onClick={onSelect}
+        type="button"
+        className={`relative w-full border-none p-0 bg-none cursor-pointer ${selected ? 'grayscale-0' : 'grayscale'}`}
+      >
+        <div className="isolate w-full hover:shadow-lg transition-all">
           <img
             src={url}
             alt={title}
-            className="block bg-[#242020] mix-blend-multiply"
-            style={{ display: 'block' }}
+            className="block bg-[#242020] mix-blend-multiply w-full h-auto object-cover"
           />
+          {count > 1 && (
+            <span className="absolute top-0 right-0 bg-white text-black px-3 py-1 rounded-full text-lg font-semibold">
+              {count}
+            </span>
+          )}
         </div>
-        {count > 1 && (
-          <span className="absolute top-0 right-0 bg-white text-black px-3 py-1 rounded-full text-lg font-semibold">
-            {count}
-          </span>
-        )}
       </button>
     </div>
   );

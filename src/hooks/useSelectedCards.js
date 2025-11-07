@@ -1,4 +1,3 @@
-
 /**
  * Hook to manage card selection, count, and total score
  * @param {number} numberOfPlayers - Maximum number of players/cards to select
@@ -11,15 +10,12 @@ import useDecks from './useDecks';
  * Hook to manage card selection, count, and total score
  * @returns hook for managing selected cards tied to the currently selected deck
  */
-export function useSelectedCards() {
+export function useSelectedCards(numberOfPlayers = 0) {
   const [selectedCards, setSelectedCards] = useState([]);
   const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
-
-  // get numberOfPlayers from the selected deck
-  const { selectedDeck } = useDecks();
-  const numberOfPlayers = selectedDeck?.number_of_players ?? 0;
+  const [showMaxPlayersAlert, setShowMaxPlayersAlert] = useState(false);
 
   const getCardCount = useCallback((card) => {
     return selectedCards.filter(
@@ -40,6 +36,11 @@ export function useSelectedCards() {
         );
         setSelectedCards(newSelectedCards);
         setTotal(prev => prev - card.score * cardCount);
+      } else {
+        // Show alert when trying to add more cards at max players
+        setShowMaxPlayersAlert(true);
+        // Auto-hide alert after 3 seconds
+        setTimeout(() => setShowMaxPlayersAlert(false), 3000);
       }
     } else {
       // Allow selecting and unselecting cards
@@ -56,21 +57,21 @@ export function useSelectedCards() {
     }
   }, [selectedCards, numberOfPlayers, getCardCount]);
 
-  const loadSelectedCards = useCallback(async (userId) => {
+  const loadSelectedCards = useCallback(async (deckId) => {
+    if (!deckId) return;
+    
+    setIsLoading(true);
     try {
-      setIsLoading(true);
-      setError(null);
-      const data = await pbService.getSelectedCards(userId);
-      setSelectedCards(data.cards || []);
-      // Calculate total score from loaded cards
-      const newTotal = (data.cards || []).reduce((sum, card) => sum + card.score, 0);
+      const items = await pbService.getSelectedCards(deckId);
+      setSelectedCards(items || []);
+      const newTotal = (items || []).reduce((acc, card) => acc + card.score, 0);
       setTotal(newTotal);
     } catch (err) {
-      setError(err.message);
+      setError(err);
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, []); // Empty deps array since it doesn't depend on any external values
 
   /**
    * Save selected cards and optionally override the number of players
@@ -106,9 +107,11 @@ export function useSelectedCards() {
     isLoading,
     error,
     getCardCount,
-    handleCardSelect, 
+    handleCardSelect,
     loadSelectedCards,
-    saveSelectedCards
+    saveSelectedCards,
+    showMaxPlayersAlert,
+    setShowMaxPlayersAlert
   };
 }
 

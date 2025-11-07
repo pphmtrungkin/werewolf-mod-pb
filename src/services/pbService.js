@@ -36,7 +36,7 @@ export async function updateDeckCards({ userId, selectedCards, numberOfPlayers }
  */
 export async function getCards() {
   // returns an array of records
-  const items = await pb.collection('cards').getFullList({ sort: 'id' });
+  const items = await pb.collection('cards').getFullList({ sort: '+card_order' });
   return items;
 }
 
@@ -50,11 +50,12 @@ export async function getDeck(userId) {
 }
 
 export async function getSelectedCards(deckId) {
-  const items = await pb.collection('deck_cards').getFullList({
+  const items = await pb.collection('decks_cards').getFullList({
     filter: `deck = "${deckId}"`,
-    sort: 'id',
+    expand: 'card',
   });
-  return items;
+  console.log('Fetched selected cards:', items);
+  return items.map(item => item.expand.card);
 }
 
 
