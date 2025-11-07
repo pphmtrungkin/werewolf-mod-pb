@@ -9,7 +9,7 @@ import { useCards } from "../hooks/useCards";
 import { useSides } from "../hooks/useSides";
 import useDecks from "../hooks/useDecks";
 import useSelectedCards from "../hooks/useSelectedCards";
-import { FormControl, InputLabel, Select, MenuItem, IconButton, Alert, Collapse } from "@mui/material";
+import { FormControl, InputLabel, Select, MenuItem, IconButton, Alert, Collapse, Slide } from "@mui/material";
 import KeyboardArrowLeftIcon from '@mui/icons-material/KeyboardArrowLeft';
 import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
 
@@ -87,26 +87,29 @@ export default function SetUp() {
   }
   return (
     <>
-      <Outlet />
-      <div className="my-20 mx-60">
+      <div className="mt-28 mx-40">
         {/* Add this alert near the top of your content */}
-        <Collapse in={showMaxPlayersAlert}>
+        <Slide
+          direction="down"
+          in={showMaxPlayersAlert}
+          mountOnEnter
+          unmountOnExit
+          timeout={300}
+        >
           <Alert 
             severity="warning"
             variant="filled"
             onClose={() => setShowMaxPlayersAlert(false)}
             sx={{ 
-              mb: 4,
-            //   backgroundColor: 'rgba(237, 108, 2, 0.1)',
-            //   color: '#ed6c02',
-            //   '& .MuiAlert-icon': {
-            //     color: '#ed6c02'
-            //   }
+              position: 'fixed', 
+              top: '80px', 
+              width: '60%',
+              zIndex: 20,
             }}
           >
             Maximum number of players ({numberOfPlayers}) reached. Remove cards to add different ones.
           </Alert>
-        </Collapse>
+        </Slide>
 
         <div className="text-4xl font-semibold text-center">Set Up</div>
         <hr className="w-4/5 h-1 mx-auto my-4 bg-gray-100 border-0 rounded-sm md:my-8 dark:bg-gray-700" />
@@ -131,21 +134,21 @@ export default function SetUp() {
                   const deck = decks.find((d) => d.id === e.target.value);
                   setSelectedDeck(deck);
                 }}
-                sx={{
-                  color: 'white',
-                  '& .MuiOutlinedInput-notchedOutline': {
-                    borderColor: 'rgba(255, 255, 255, 0.3)',
-                  },
-                  '&:hover .MuiOutlinedInput-notchedOutline': {
-                    borderColor: 'rgba(255, 255, 255, 0.5)',
-                  },
-                  '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                    borderColor: 'white',
-                  },
-                  '& .MuiSvgIcon-root': {
-                    color: 'white',
-                  },
-                }}
+                // sx={{
+                //   color: 'var(--text)',
+                //   '& .MuiOutlinedInput-notchedOutline': {
+                //     borderColor: 'var(--text)',
+                //   },
+                //   '&:hover .MuiOutlinedInput-notchedOutline': {
+                //     borderColor: 'var(--accent)',
+                //   },
+                //   '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                //     borderColor: 'var(--text)',
+                //   },
+                //   '& .MuiSvgIcon-root': {
+                //     color: 'var(--accent)',
+                //   },
+                // }}
               >
                 {decks.map((deck) => (
                   <MenuItem key={deck.id} value={deck.id}>

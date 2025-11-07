@@ -19,6 +19,7 @@ export const UserProvider = ({ children }) => {
       if (pb.authStore.isValid) {
         setUser(pb.authStore.model);
         console.log('User authenticated:', pb.authStore.model);
+        setAvatar(import.meta.env.VITE_POCKETBASE_URL + '/api/files/users' + '/' + pb.authStore.model.id + '/' + pb.authStore.model.avatar);
       }
       setLoading(false);
     }

@@ -1,27 +1,25 @@
 @import "tailwindcss";
 @import 'animate.css';
 
-html, body, #root {
-    margin: 0;
-    padding: 0;
-    width: 100%;
-    height: 100%;
-    box-sizing: border-box;
+@layer base {
+  :root {
+    --text: #1f0d0a;
+    --background: #dedad9;
+    --primary: #acb7c9;
+    --secondary: #48849d;
+    --accent: #34969d;
+  }
+  .dark {
+    --text: #f5e4e1;
+    --background: #231F20;
+    --primary: #364153;
+    --secondary: #609cb6;
+    --accent: #63c4cb;
+  }
 }
 
-body {
-    background-color: #242020;
-    color: #ffffff;
-    font-family: 'Montserrat', sans-serif;
-    overflow-x: hidden;
-}
-
-#root {
-    display: flex;
-    flex-direction: column;
-}
-
-button {
-    background-color: #ffffff;
-    color: #000000;
-}
+  body {
+    background-color: var(--background);
+    color: var(--text);
+    border: var(--accent)
+  }

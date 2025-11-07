@@ -1,14 +1,19 @@
 import React, { useState, useEffect, useContext } from "react";
 import StyleIcon from "@mui/icons-material/Style";
+import Brightness4Icon from '@mui/icons-material/Brightness4';
+import Brightness7Icon from '@mui/icons-material/Brightness7';
+import { Tooltip } from '@mui/material';
 import { useNavigate } from "react-router";
 import { UserContext } from "./UserContext";
 import { IconButton } from "@mui/material";
+import { Outlet } from "react-router";
+
 const Spinner = () => {
   return (
     <div role="status">
       <svg
         aria-hidden="true"
-        class="w-8 h-8 text-gray-200 animate-spin dark:text-gray-600 fill-blue-600"
+        className="w-8 h-8 text-gray-200 animate-spin dark:text-gray-600 fill-blue-600"
         viewBox="0 0 100 101"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
@@ -22,69 +27,122 @@ const Spinner = () => {
           fill="currentFill"
         />
       </svg>
-      <span class="sr-only">Loading...</span>
+      <span className="sr-only">Loading...</span>
     </div>
   );
 };
 const Nav = () => {
   const { user, avatar, loading } = useContext(UserContext);
   const navigate = useNavigate();
+  const [isDark, setIsDark] = useState(() => {
+    try {
+      if (typeof document !== 'undefined') {
+        return document.documentElement.classList.contains('dark');
+      }
+      return false;
+    } catch (e) {
+      return false;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('theme');
+      if (stored === 'dark') {
+        document.documentElement.classList.add('dark');
+        setIsDark(true);
+      } else if (stored === 'light') {
+        document.documentElement.classList.remove('dark');
+        setIsDark(false);
+      }
+    } catch (e) {
+      // ignore
+    }
+  }, []);
+
+  const toggleTheme = () => {
+    try {
+      const next = !document.documentElement.classList.contains('dark');
+      if (next) {
+        document.documentElement.classList.add('dark');
+        localStorage.setItem('theme', 'dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+        localStorage.setItem('theme', 'light');
+      }
+      setIsDark(next);
+    } catch (e) {
+      // ignore
+    }
+  };
   return (
-    <div className="fixed top-0 w-screen min-h-20 z-10 flex items-center justify-between flex-wrap bg-[#241F21] px-40 py-4">
-      <div className="px-2">
-        <IconButton
-          onClick={() => {
-            navigate("/");
-          }}
-          sx={{
-            ":hover": {
-              scale: 1.2,
-              transition: "scale fadeIn",
-            }
-          }}
-        >
-          <StyleIcon className="text-white" fontSize="large" />
-        </IconButton>
+    <div>
+      <div
+        className="fixed top-0 w-screen min-h-20 z-10 flex items-center justify-between flex-wrap px-40 py-4"
+        style={{ backgroundColor: 'var(--primary)' }}
+      >
+        <div className="px-2">
+          <IconButton
+            onClick={() => {
+              navigate("/");
+            }}
+            sx={{
+              ":hover": {
+                scale: 1.2,
+                transition: "scale fadeIn",
+              }
+            }}
+          >
+            <StyleIcon style={{ color: 'var(--text)' }} fontSize="large" />
+          </IconButton>
+        </div>
+        <div className="flex items-center gap-4">
+          <Tooltip title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}>
+            <IconButton onClick={toggleTheme} size="large" color="inherit">
+              {isDark ? <Brightness7Icon className="text-white" /> : <Brightness4Icon className="text-white" />}
+            </IconButton>
+          </Tooltip>
+          <button
+            type="button"
+            onClick={() => {
+              if (user.role == "authenticated") {
+                navigate("/account");
+              }
+            }}
+            className="flex flex-row gap-x-2 items-center transition hover:scale-110 py-2 px-4 rounded-full"
+            style={{ backgroundColor: 'var(--background)', color: 'var(--text)' }}
+          >
+            {loading ? (
+              <Spinner />
+            ) : (
+              <>
+                <span aria-hidden="true" className="flex">
+                  {avatar ? (
+                    <img src={avatar} className="h-8 w-8 rounded-full object-cover" />
+                  ) : (
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      fill="currentColor"
+                      className="w-6 h-6"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M7.5 6a4.5 4.5 0 1 1 9 0 4.5 4.5 0 0 1-9 0ZM3.751 20.105a8.25 8.25 0 0 1 16.498 0 .75.75 0 0 1-.437.695A18.683 18.683 0 0 1 12 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 0 1-.437-.695Z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                  )}
+                </span>
+                <p className="text-base font-semibold" style={{ color: 'var(--text)' }}>
+                  {user && user.user_metadata && user.user_metadata.username ? user.user_metadata.username : (user && user.user_metadata && user.user_metadata.fullname ? user.user_metadata.fullname : "Login")}
+                </p>
+              </>
+            )}
+          </button>
+        </div>
       </div>
-      <div className="flex">
-        <button
-          type="button"
-          onClick={() => {
-            if (user.role == "authenticated") {
-              navigate("/account");
-            }
-          }}
-          className="flex flex-row gap-x-2 items-center transition hover:scale-110 bg-white py-2 px-4 rounded-full"
-        >
-          {loading ? (
-            <Spinner />
-          ) : (
-            <>
-              <span aria-hidden="true" className="flex">
-                {avatar ? (
-                  <img src={avatar} className="h-8 w-8 rounded-full object-cover" />
-                ) : (
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 24 24"
-                    fill="black"
-                    className="w-6 h-6"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M7.5 6a4.5 4.5 0 1 1 9 0 4.5 4.5 0 0 1-9 0ZM3.751 20.105a8.25 8.25 0 0 1 16.498 0 .75.75 0 0 1-.437.695A18.683 18.683 0 0 1 12 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 0 1-.437-.695Z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                )}
-              </span>
-              <p className="text-black text-base font-semibold">
-                {user && user.user_metadata && user.user_metadata.username ? user.user_metadata.username : (user && user.user_metadata && user.user_metadata.fullname ? user.user_metadata.fullname : "Login")}
-              </p>
-            </>
-          )}
-        </button>
-      </div>
+      <Outlet />
     </div>
   );
 };
