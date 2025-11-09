@@ -41,7 +41,7 @@ export async function getCards() {
 }
 
 export async function getSides() {
-  const items = await pb.collection('sides').getFullList({ sort: 'id' });
+  const items = await pb.collection('sides').getFullList({ sort: 'hex_color' });
   return items;
 }
 

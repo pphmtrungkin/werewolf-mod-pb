@@ -1,5 +1,4 @@
-import React, { useEffect } from "react";
-import { useState, useContext } from "react";
+import { useState, useContext, useEffect } from "react";
 import SideButton from "../components/SideButton";
 import Card from "../components/Card";
 import { useNavigate, Outlet } from "react-router";
@@ -33,9 +32,6 @@ export default function SetUp() {
 
   const [filteredCards, setFilteredCards] = useState([]);
 
-
-  
-
   const [selectedSideButton, setSelectedSideButton] = useState(null);
 
   const handleSideButtonClick = (id) => {
@@ -45,6 +41,8 @@ export default function SetUp() {
   
   const {
     selectedCards,
+    loadedSelectedCards,
+    saveSelectedCards,
     handleCardSelect,
     getCardCount,
     total,
@@ -61,7 +59,6 @@ export default function SetUp() {
       setNumberOfPlayers(selectedDeck.number_of_players);
       setTimer(selectedDeck.timer || 300);
       loadSelectedCards(selectedDeck.id);
-      console.log(selectedCards);
     }
   }, [selectedDeck]);
 
@@ -87,7 +84,7 @@ export default function SetUp() {
   }
   return (
     <>
-      <div className="mt-28 mx-40">
+      <div className="my-28">
         {/* Add this alert near the top of your content */}
         <Slide
           direction="down"
@@ -112,7 +109,6 @@ export default function SetUp() {
         </Slide>
 
         <div className="text-4xl font-semibold text-center">Set Up</div>
-        <hr className="w-4/5 h-1 mx-auto my-4 bg-gray-100 border-0 rounded-sm md:my-8 dark:bg-gray-700" />
         {/* Select Deck */}
         {
           decksLoading ? (
@@ -124,8 +120,8 @@ export default function SetUp() {
               Error loading decks: {decksError.message}
             </div>
           ) : (
-            <FormControl fullWidth sx={{ marginBottom: '20px' }}>
-              <InputLabel id="deck-select-label" sx={{ color: 'white' }}>Select Deck</InputLabel>
+            <FormControl fullWidth sx={{ marginBlock: '48px' }}>
+              <InputLabel id="deck-select-label" sx={{fontWeight: '600', fontSize: '18px', color: 'var(--secondary)', '&.Mui-focused': { color: 'var(--secondary)' }, }}>Select Deck</InputLabel>
               <Select
                 labelId="deck-select-label"
                 value={selectedDeck ? selectedDeck.id : ''}
@@ -134,22 +130,12 @@ export default function SetUp() {
                   const deck = decks.find((d) => d.id === e.target.value);
                   setSelectedDeck(deck);
                 }}
-                // sx={{
-                //   color: 'var(--text)',
-                //   '& .MuiOutlinedInput-notchedOutline': {
-                //     borderColor: 'var(--text)',
-                //   },
-                //   '&:hover .MuiOutlinedInput-notchedOutline': {
-                //     borderColor: 'var(--accent)',
-                //   },
-                //   '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                //     borderColor: 'var(--text)',
-                //   },
-                //   '& .MuiSvgIcon-root': {
-                //     color: 'var(--accent)',
-                //   },
-                // }}
-              >
+                sx = {{
+                      '& .MuiOutlinedInput-notchedOutline': {
+                        borderWidth: '2px',
+                      },
+                    }}
+                 >
                 {decks.map((deck) => (
                   <MenuItem key={deck.id} value={deck.id}>
                     {deck.name}
@@ -175,6 +161,7 @@ export default function SetUp() {
           <p className="text-center text-2xl font-semibold">
             Players: {numberOfPlayers}
           </p>
+          
           <IconButton
             onClick={() => setNumberOfPlayers((prev) => prev + 1)}
             sx={{
@@ -188,10 +175,14 @@ export default function SetUp() {
             <KeyboardArrowRightIcon />
           </IconButton>
         </div>
-        <hr className="w-4/5 h-1 mx-auto my-4 bg-gray-100 border-0 rounded-sm md:my-8 dark:bg-gray-700" />
+        <hr className="w-4/5 mx-auto my-4 border-1 rounded-sm md:my-8" style={{borderColor: 'var(--primary)'}} />
 
         <p className="text-center text-2xl font-semibold">Total: {total}</p>
-        <hr className="w-4/5 h-1 mx-auto my-4 bg-gray-100 border-0 rounded-sm md:my-8 dark:bg-gray-700" />
+        <hr className="w-4/5 mx-auto my-4 border-1 rounded-sm md:my-8" style={{borderColor: 'var(--primary)'}} />
+        {/* Display number of selected cards*/}
+        <p className="text-center text-lg font-medium mb-4">
+            Selected Cards: {(selectedCards?.length ?? 0) + (loadedSelectedCards?.length ?? 0)}
+        </p>
 
         <div className="flex justify-around items-center my-8">
           {sides.map((side) => (
@@ -218,9 +209,8 @@ export default function SetUp() {
                 {...card}
                 onSelect={() => handleCardSelect(card)}
                 count={getCardCount(card)}
-                selected={selectedCards.some(
-                  (selectedCard) => selectedCard.id === card.id
-                )}
+                // check if card is selected
+                selected={getCardCount(card) > 0}
               />
             ))}
           </div>
@@ -259,7 +249,7 @@ export default function SetUp() {
         <div className="flex justify-center mt-14">
           <button
             className="w-1/3 h-12 bg-gray-500 text-white rounded-lg hover:bg-white hover:text-gray-800 text-lg font-semibold"
-            onClick={() => updateSelectedCards(selectedCards)}
+            onClick={() => saveSelectedCards()}
           >
             Next Step
           </button>

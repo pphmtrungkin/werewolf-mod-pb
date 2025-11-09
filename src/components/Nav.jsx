@@ -109,7 +109,7 @@ const Nav = () => {
                 navigate("/account");
               }
             }}
-            className="flex flex-row gap-x-2 items-center transition hover:scale-110 py-2 px-4 rounded-full"
+            className="flex flex-row gap-x-2 items-center transition hover:scale-110 py-2 px-4 rounded-full cursor-pointer"
             style={{ backgroundColor: 'var(--background)', color: 'var(--text)' }}
           >
             {loading ? (
@@ -135,14 +135,16 @@ const Nav = () => {
                   )}
                 </span>
                 <p className="text-base font-semibold" style={{ color: 'var(--text)' }}>
-                  {user && user.user_metadata && user.user_metadata.username ? user.user_metadata.username : (user && user.user_metadata && user.user_metadata.fullname ? user.user_metadata.fullname : "Login")}
+                  {user && user.name ? user.name : 'Account'}
                 </p>
               </>
             )}
           </button>
         </div>
       </div>
-      <Outlet />
+      <div className="w-3/5 mx-auto">
+        <Outlet />
+      </div>
     </div>
   );
 };
