@@ -16,13 +16,6 @@ export function useSelectedCards(numberOfPlayers = 0) {
   const [error, setError] = useState(null);
   const [showMaxPlayersAlert, setShowMaxPlayersAlert] = useState(false);
 
-  // Debugging logs
-  useEffect(() => {
-    console.log('Loaded Selected Cards:', loadedSelectedCards);
-    console.log('Selected Cards:', selectedCards);
-    console.log('Removed Cards:', removedCards);
-  }, [loadedSelectedCards, selectedCards, removedCards]);
-
   // Get the count of a specific card in both loaded and selected cards
   const getCardCount = useCallback((card) => {
     let count = 0;
@@ -41,7 +34,6 @@ export function useSelectedCards(numberOfPlayers = 0) {
   const handleCardSelect = useCallback((card) => {
     const cardCount = getCardCount(card);
     const totalSelectedCards = selectedCards.length + loadedSelectedCards.length;
-    console.log('Total Selected Cards:', totalSelectedCards);
     const limit = card.card_limit > numberOfPlayers ? numberOfPlayers : card.card_limit;
 
     if (totalSelectedCards >= numberOfPlayers) {

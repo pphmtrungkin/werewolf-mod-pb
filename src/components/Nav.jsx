@@ -82,19 +82,21 @@ const Nav = () => {
         style={{ backgroundColor: 'var(--primary)' }}
       >
         <div className="px-2">
-          <IconButton
-            onClick={() => {
-              navigate("/");
-            }}
-            sx={{
-              ":hover": {
-                scale: 1.2,
-                transition: "scale fadeIn",
-              }
-            }}
-          >
-            <StyleIcon style={{ color: 'var(--text)' }} fontSize="large" />
-          </IconButton>
+          <Tooltip title="Go to Home"> 
+            <IconButton
+              onClick={() => {
+                navigate("/");
+              }}
+              sx={{
+                ":hover": {
+                  scale: 1.2,
+                  transition: "scale fadeIn",
+                }
+              }}
+            >
+              <StyleIcon style={{ color: 'var(--text)' }} fontSize="large" />
+            </IconButton>
+          </Tooltip>
         </div>
         <div className="flex items-center gap-4">
           <Tooltip title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}>
@@ -105,7 +107,7 @@ const Nav = () => {
           <button
             type="button"
             onClick={() => {
-              if (user.role == "authenticated") {
+              if (user) {
                 navigate("/account");
               }
             }}
@@ -142,7 +144,7 @@ const Nav = () => {
           </button>
         </div>
       </div>
-      <div className="w-3/5 mx-auto">
+      <div className="xl:w-3/5 md:w-4/5 mx-auto mt-20">
         <Outlet />
       </div>
     </div>

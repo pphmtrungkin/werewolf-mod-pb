@@ -23,7 +23,6 @@ function useDecks() {
         setError(null);
         try {
             const items = await pbService.getDeck(user.id);
-            console.log('Fetched decks in useDecks:', items);
             setDecks(items || []);
             const list = items || [];
             const defaultDeck = list.find(d => d && d.name && d.name.toLowerCase().includes('default'));

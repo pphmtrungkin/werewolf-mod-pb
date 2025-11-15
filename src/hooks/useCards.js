@@ -13,7 +13,6 @@ export function useCards() {
       const items = await pbService.getCards();
       // pb returns an array of records (PocketBase JS client)
       setCards(items || []);
-      console.log(items);
     } catch (err) {
       setError(err);
     } finally {

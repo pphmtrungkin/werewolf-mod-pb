@@ -55,7 +55,6 @@ export default function SetUp() {
   
   useEffect(() => {
     if (selectedDeck) {
-     console.log(selectedDeck); 
       setNumberOfPlayers(selectedDeck.number_of_players);
       setTimer(selectedDeck.timer || 300);
       loadSelectedCards(selectedDeck.id);

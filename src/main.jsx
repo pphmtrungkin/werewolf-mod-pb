@@ -58,11 +58,11 @@ function App() {
     },
     {
       path: "/account",
-      element: <Account />,
+      Component: Nav,
       children: [
         {
           path: "",
-          element: <Nav />,
+          element: <Account />,
         },
       ],
     }, {

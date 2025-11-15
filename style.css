@@ -23,3 +23,7 @@
     color: var(--text);
     border: var(--accent)
   }
+
+  button:hover {
+    cursor: pointer;
+  }

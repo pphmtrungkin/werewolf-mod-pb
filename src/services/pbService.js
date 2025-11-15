@@ -54,7 +54,6 @@ export async function getSelectedCards(deckId) {
     filter: `deck = "${deckId}"`,
     expand: 'card',
   });
-  console.log('Fetched selected cards:', items);
   return items.map(item => item.expand.card);
 }
 

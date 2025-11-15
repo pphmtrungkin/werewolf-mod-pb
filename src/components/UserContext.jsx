@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { TrendingUpSharp } from '@mui/icons-material';
 import { useNavigate } from 'react-router';
-import Pocketbase from 'pocketbase';
+import pb from '../pocketbase'
 // Create a context
 export const UserContext = createContext();
 
@@ -10,7 +10,6 @@ export const UserProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [avatar, setAvatar] = useState('');
   const [loading, setLoading] = useState(false);
-  const pb = new Pocketbase('http://localhost:8090'); // Replace with your PocketBase URL
 
   useEffect(() => {
     async function loadUser() {

@@ -1,15 +1,15 @@
 import React, { useEffect, useRef, useState, useContext } from "react";
 import { Outlet } from "react-router";
 import { useNavigate } from "react-router";
+import pb from "../pocketbase";
 import { UserContext } from "../components/UserContext";
-
 const Spinner = () => {
   return (
     <div className="flex justify-center items-center">
       <div role="status">
         <svg
           aria-hidden="true"
-          class="w-12 h-12 text-gray-200 animate-spin dark:text-gray-600 fill-blue-600"
+          className="w-12 h-12 text-gray-200 animate-spin dark:text-gray-600 fill-blue-600"
           viewBox="0 0 100 101"
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
@@ -31,7 +31,7 @@ const Spinner = () => {
 const SideBar = ({ selectedButton, setSelectedButton }) => {
   return (
     <div className="w-max">
-      <ul className="justify-start list-none mt-12">
+      <ul className="justify-start list-none mt-16">
         <li className="mt-4">
           <button
             className={`hover:bg-white rounded-lg ${
@@ -86,66 +86,40 @@ const AccountSetting = ({ user }) => {
   const [isOverlayOpen, setIsOverlayOpen] = useState(false);
 
   // variables for input check
-  const [fullName, setFullName] = useState("");
+  // Put them all in a FormData object when submitting
+  const [formData, setFormData] = useState({});
   const fullNameRef = useRef(null);
-  const [username, setUsername] = useState("");
-  const [email, setEmail] = useState("");
-  const [phoneNumber, setPhoneNumber] = useState("");
   const [toggleDisable, setToggleDisable] = useState(true);
 
   const handleFocus = () => {
-    setToggleDisable(false);
-    setTimeout(() => {
-      if (fullNameRef.current) {
-        fullNameRef.current.focus();
-      }
-    }, 0);
-  };
-  useEffect(() => {
-    async function getProfile() {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select(`username, full_name, phone, avatar_url`)
-        .eq("id", user.id)
-        .single();
-      setLoading(true);
-      if (error) {
-        console.warn(error);
-      } else if (data) {
-        console.log(data);
-        if (data.username) setUsername(data.username);
-        setFullName(data.full_name);
-        setEmail(user.email);
-        if (data.phone) setPhoneNumber(data.phone);
-        setAvatarUrl(data.avatar_url);
-      }
-      setLoading(false);
+    setToggleDisable(!toggleDisable);
+    if (toggleDisable) {
+      fullNameRef.current.focus();
     }
+  };
 
+   useEffect(() => {
+    async function getProfile() {
+      const userId = pb.authStore.model.id;
+      const record = await pb.collection("users").getOne(userId);
+      setFormData({
+        fullName: record.full_name || "",
+        username: record.name || "",
+        email: record.email || "",
+        phoneNumber: record.phone || "",
+      });
+    }
+    
     getProfile();
   }, []);
 
   const updateProfile = async (e) => {
     e.preventDefault();
-    const { error } = await supabase
-      .from("profiles")
-      .update({
-        username: username,
-        full_name: fullName,
-        phone: phoneNumber,
-      })
-      .eq("id", user.id);
-
-    const { error: updateError } = await supabase.auth.updateUser({
-      email: email,
-      data: {
-        username: username,
-        full_name: fullName,
-      },
-    });
     setLoading(true);
-    if (error || updateError) {
-      console.log("Error updating user profile: ", error.message);
+    const record = await pb.collection("users").update('RECORD_ID', formData);
+    if (record.status) {
+      console.error("Error updating profile: ", record.status, record.message);
+      alert("Error updating profile");
     } else {
       alert("Profile updated successfully");
     }
@@ -160,29 +134,14 @@ const AccountSetting = ({ user }) => {
     let file = e.target.files[0];
     setImageFile(file);
     setFileUrl(URL.createObjectURL(file));
+    console.log(file);
   };
 
   const updateProfileUrl = async (filePath) => {
     console.log(filePath);
-    const { data } = supabase.storage
-      .from("avatars")
-      .getPublicUrl(`${filePath}`);
-    if (data) {
-      console.log(data.publicUrl);
-      uploadImageUrlToProfile(data.publicUrl);
-    } else {
-      console.log(error.message);
-    }
   };
   const uploadImageUrlToProfile = async (Url) => {
     console.log(Url);
-    const { data, error } = await supabase.auth.updateUser({
-      data: { avatar_url: Url },
-    });
-    const { updateError } = await supabase
-      .from("profiles")
-      .update({ avatar_url: Url })
-      .eq("id", user.id);
     if (error && updateError) {
       console.error("Error updating user profile: ", error);
     } else {
@@ -193,13 +152,6 @@ const AccountSetting = ({ user }) => {
     e.preventDefault();
     const filename = `${user.id}/profile`;
     setImgPath(filename);
-    const { data, error } = await supabase.storage
-      .from("avatars")
-      .upload(filename, imageFile, {
-        cacheControl: "3600",
-        upsert: false,
-      });
-
     if (data) {
       console.log(data.path);
       updateProfileUrl(data.path);
@@ -212,21 +164,11 @@ const AccountSetting = ({ user }) => {
   const deleteAvatar = async () => {
     const imgPath = `${user.id}/profile`;
     console.log(imgPath);
-    const { data: removeData, error } = await supabase.storage
-      .from("avatars")
-      .remove([imgPath]);
     if (error) {
       console.error("Error deleting image: ", error);
     } else {
       console.log("Image deleted successfully", removeData);
       setAvatarUrl("");
-      const { error } = await supabase.auth.updateUser({
-        data: { avatar_url: null },
-      });
-      const { updateError } = await supabase
-        .from("profiles")
-        .update({ avatar_url: null })
-        .eq("id", user.id);
       if (error && updateError) {
         console.error("Error updating user profile: ", error);
       }
@@ -234,16 +176,16 @@ const AccountSetting = ({ user }) => {
   };
 
   return (
-    <div className="flex flex-col mt-12 gap-y-4">
+    <div className="flex flex-col my-16 gap-y-4">
       {loading ? (
         <Spinner />
       ) : (
         <>
           <div className="flex flex-row items-center gap-x-8">
             <div className="flex">
-              {user && user.user_metadata.avatar_url ? (
+              {user ? (
                 <img
-                  src={user.user_metadata.avatar_url}
+                  src={import.meta.env.VITE_POCKETBASE_URL + '/api/files/users/' + user.id + '/' + user.avatar}
                   className="rounded-full object-cover w-32 h-32"
                 />
               ) : (
@@ -265,10 +207,10 @@ const AccountSetting = ({ user }) => {
             </div>
             <div className="block ml-4">
               <h3 className="font-semibold text-2xl">
-                {username == "" ? fullName : "@" + username}
+                {formData.username == "" ? formData.fullName : "@" + formData.username}
               </h3>
-              <p className={`${username == "" ? "hidden" : "text-xl"}`}>
-                {fullName}
+              <p className={`${formData.username == "" ? "hidden" : "text-xl"}`}>
+                {formData.fullName}
               </p>
             </div>
             <div className="flex ml-8">
@@ -278,12 +220,6 @@ const AccountSetting = ({ user }) => {
                 onClick={() => {
                   console.log("Sign out button clicked");
                   async function signOut() {
-                    const { error } = await supabase.auth.signOut();
-                    if (error) {
-                      console.log("Sign out error:", error.message);
-                    } else {
-                      navigate("/login");
-                    }
                   }
                   signOut();
                 }}
@@ -355,7 +291,7 @@ const AccountSetting = ({ user }) => {
                 onClick={() => setIsOverlayOpen(false)}
               >
                 <svg
-                  class="w-12 h-12 text-gray-800 dark:text-white"
+                  className="w-12 h-12 text-gray-800 dark:text-white"
                   aria-hidden="true"
                   xmlns="http://www.w3.org/2000/svg"
                   width="24"
@@ -365,9 +301,9 @@ const AccountSetting = ({ user }) => {
                 >
                   <path
                     stroke="currentColor"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
                     d="m15 9-6 6m0-6 6 6m6-3a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
                   />
                 </svg>
@@ -441,32 +377,40 @@ const AccountSetting = ({ user }) => {
                 type="text"
                 name="fullName"
                 id="fullName"
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
+                value={formData.fullName ?? ""}
+                // save full name to formData
+                onChange={(e) =>
+                  setFormData({ ...formData, fullName: e.target.value })
+                }
+                className={`py-3 border-b-2 w-full focus:outline-none focus:ring-0 focus:border-blue-500 mb-4 ${toggleDisable ? "cursor-not-allowed opacity-50" : ""}` }
               />
               <label htmlFor="username">Username</label>
               <input
                 type="text"
                 name="username"
                 id="username"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                value={formData.username ?? ""}
+                onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                 className={`py-3 border-b-2 w-full focus:outline-none focus:ring-0 focus:border-blue-500 mb-4 ${toggleDisable ? "cursor-not-allowed opacity-50" : ""}` }
+
               />
               <label htmlFor="email">Email</label>
               <input
                 type="email"
                 name="email"
                 id="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                value={formData.email ?? ""}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  className={`py-3 border-b-2 w-full focus:outline-none focus:ring-0 focus:border-blue-500 mb-4 ${toggleDisable ? "cursor-not-allowed opacity-50" : ""}` }  
               />
               <label htmlFor="phoneNumber">Phone Number</label>
               <input
                 type="phone"
                 name="phoneNumber"
                 id="phoneNumber"
-                value={phoneNumber}
+                value={formData.phoneNumber ?? ""}
                 onChange={(e) => setPhoneNumber(e.target.value)}
+                  className={`py-3 border-b-2 w-full focus:outline-none focus:ring-0 focus:border-blue-500 mb-4 ${toggleDisable ? "cursor-not-allowed opacity-50" : ""}` }
               />
               <input
                 type="submit"
@@ -487,8 +431,6 @@ const sendEmailPasswordReset = async (e, email) => {
   if (!isChecked) {
     console.log("Please confirm to proceed");
   } else {
-    const { data, error } = await supabase.auth.resetPasswordForEmail(email);
-    console.log(data, error);
   }
 };
 
@@ -520,11 +462,6 @@ const PasswordResetRedirect = ({ email }) => {
 
 const PasswordSetting = ({ user }) => {
   const [event, setEvent] = useState("");
-  useEffect(() => {
-    supabase.auth.onAuthStateChange((_event) => {
-      setEvent(_event);
-    });
-  }, []);
   const email = user ? user.email : "";
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -534,7 +471,6 @@ const PasswordSetting = ({ user }) => {
     e.preventDefault();
 
     if (newPassword === confirmPassword) {
-      const { data, error } = await supabase.auth.resetPasswordForEmail(email);
     } else {
       console.log("Passwords do not match");
     }
@@ -586,15 +522,14 @@ const Account = () => {
   const [selectedButton, setSelectedButton] = useState("Account");
   const { user } = useContext(UserContext);
   return (
-    <div className="flex w-full mt-11">
-      <Outlet />
-      <div className="flex ml-40 flex-col justify-start">
+    <div className="grid grid-cols-3">
+      <div className="col-span-1">
         <SideBar
           selectedButton={selectedButton}
           setSelectedButton={setSelectedButton}
         />
       </div>
-      <div className="flex flex-col ml-32 w-1/2">
+      <div className="col-span-2">
         {selectedButton == "Account" && user ? (
           <AccountSetting key={user.id} user={user} />
         ) : (
