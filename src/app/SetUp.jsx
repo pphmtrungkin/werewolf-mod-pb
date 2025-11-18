@@ -247,10 +247,16 @@ export default function SetUp() {
         </div>
         <div className="flex justify-center mt-14">
           <button
-            className="w-1/3 h-12 bg-gray-500 text-white rounded-lg hover:bg-white hover:text-gray-800 text-lg font-semibold"
-            onClick={() => saveSelectedCards()}
+            type="button"
+            className="w-1/3 h-12 bg-gray-500 text-white rounded-lg hover:bg-white hover:text-gray-800 text-lg font-semibold transition-colors duration-200"
+            onClick={() => saveSelectedCards(selectedDeck.id)}
           >
-            Next Step
+            Save the setup
+          </button>
+        </div>
+        <div className="flex justify-center mt-8">
+          <button className="w-1/3 h-12 bg-gray-600 text-white rounded-lg hover:bg-white hover:text-gray-800 text-lg font-semibold transition-colors duration-200">
+            Host a game
           </button>
         </div>
       </div>

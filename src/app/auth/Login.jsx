@@ -44,8 +44,8 @@ const Login = () => {
       <img
         width={320}
         height="auto"
-        src="https://img.freepik.com/premium-vector/silhouette-wolf-howling-full-moon-vector-illustration-pagan-totem-wiccan-familiar-spirit-art_726692-254.jpg"
-        className="object-fit mx-auto"
+          src="https://img.freepik.com/premium-vector/silhouette-wolf-howling-full-moon-vector-illustration-pagan-totem-wiccan-familiar-spirit-art_726692-254.jpg"
+          className="object-fit mx-auto"
       />
       <h2 className="text-center text-4xl font-semibold uppercase tracking-wide">
         Login
@@ -104,31 +104,6 @@ const Login = () => {
             autoCapitalize="none"
             sx={{
               width: '40%',
-              '& .MuiInputBase-root': {
-                color: 'white',
-                fontSize: '1.1rem',
-                backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                backdropFilter: 'blur(10px)',
-                borderRadius: '10px',
-                '& fieldset': {
-                  borderColor: 'rgba(255, 255, 255, 0.3)',
-                  borderWidth: '2px',
-                  transition: 'all 0.3s ease',
-                },
-                '&:hover fieldset': {
-                  borderColor: 'rgba(255, 255, 255, 0.5)',
-                },
-                '&.Mui-focused fieldset': {
-                  borderColor: 'white',
-                },
-              },
-              '& .MuiInputLabel-root': {
-                color: 'rgba(255, 255, 255, 0.7)',
-                fontSize: '1.1rem',
-                '&.Mui-focused': {
-                  color: 'white',
-                },
-              },
               '& .MuiOutlinedInput-input': {
                 padding: '1rem',
               },

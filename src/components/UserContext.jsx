@@ -1,32 +1,94 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
 import { TrendingUpSharp } from '@mui/icons-material';
 import { useNavigate } from 'react-router';
-import pb from '../pocketbase'
+import PocketBase from 'pocketbase';
+import {jwtDecode} from "jwt-decode";
+import { useInterval } from "usehooks-ts";
+import ms from 'ms';
+import pb from '../pocketbase';
+
+const fiveMinutesInMs = ms("5 minutes");
+const twoMinutesInMs = ms("2 minutes");
+
+
+
 // Create a context
-export const UserContext = createContext();
+export const UserContext = createContext({});
 
 // Create the provider
 export const UserProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [avatar, setAvatar] = useState('');
+  const [token, setToken] = useState(pb.authStore.token || null);
+  const [user, setUser] = useState(pb.authStore.model || null);
+  const [avatar, setAvatar] = useState(null);
   const [loading, setLoading] = useState(false);
 
+
   useEffect(() => {
-    async function loadUser() {
-      setLoading(true);
-      const authData = await pb.collection('users').authRefresh();
-      if (pb.authStore.isValid) {
-        setUser(pb.authStore.model);
-        console.log('User authenticated:', pb.authStore.model);
-        setAvatar(import.meta.env.VITE_POCKETBASE_URL + '/api/files/users' + '/' + pb.authStore.model.id + '/' + pb.authStore.model.avatar);
-      }
+    return pb.authStore.onChange((token, model) => {
+      setToken(pb.authStore.token);
+      setUser(pb.authStore.model);
+    });
+    console.log("Auth store changed", token, user);
+  }, []);
+
+  useEffect(() => {
+    if (user && user.avatar) {
+      const url = `${pb.baseUrl}/api/files/${user.collectionId}/${user.id}/${user.avatar}`;
+      setAvatar(url);
+    } else {
+      setAvatar(null);
+    }
+  }, [user]);
+
+  const register = useCallback(async (email, password, username) => {
+    setLoading(true);
+    try {
+      const record = await pb.collection('users').create({
+        email,
+        password,
+        username,
+      });
+      return { record };
+    } catch (error) {
+      return { error };
+    } finally {
       setLoading(false);
     }
-    loadUser();
-
   }, []);
+
+  const login = useCallback(async (email, password) => {
+    setLoading(true);
+    try {
+      const authData = await pb.collection('users').authWithPassword(email, password);
+      return { authData };
+    } catch (error) {
+      return { error };
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const logout = useCallback(() => {
+    pb.authStore.clear();
+    setUser(null);
+    setAvatar(null);
+  }, []);
+
+  const refreshSession = useCallback(async () => {
+    if (!pb.authStore.isValid) return;
+    const decoded = jwtDecode(token);
+    const tokenExpiration = decoded.exp;
+    const expirationWithBuffer = (decoded.exp + fiveMinutesInMs) / 1000;
+    if (tokenExpiration < expirationWithBuffer) {
+      await pb.collection("users").authRefresh();
+    }
+  }, [token]);
+
+  useInterval(refreshSession, token ? twoMinutesInMs : null);
+
+
   return (
-    <UserContext.Provider value={{user, setUser, avatar, loading}}>
+    <UserContext.Provider value={{pb, user, setUser, login, avatar, loading, setLoading}}>
       {children}
     </UserContext.Provider>
   );

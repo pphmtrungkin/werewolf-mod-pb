@@ -26,6 +26,9 @@ export default function Card({
             </span>
           )}
         </div>
+        <h4 className=" bg-opacity-50 px-3 py-1 rounded-full text-sm font-semibold">
+          {title}
+        </h4>
       </button>
     </div>
   );

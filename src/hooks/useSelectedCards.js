@@ -108,35 +108,34 @@ export function useSelectedCards(numberOfPlayers = 0) {
     }
   }, []); // Empty deps array since it doesn't depend on any external values
 
-  /**
-   * Save selected cards and optionally override the number of players
-   * @param {string} userId
-   * @param {number} [overrideNumberOfPlayers]
-   */
-  const saveSelectedCards = useCallback(async (userId, overrideNumberOfPlayers) => {
+  // Save selected cards to the backend for a given deck ID
+  // Remove cards in the removedCards array and add cards in the selectedCards array
+  // Then clear both arrays 
+  const saveSelectedCards = useCallback(async (deckId) => {
+    if (!deckId) return;
+
+    setIsLoading(true);
     try {
-      setIsLoading(true);
-      setError(null);
-      const payloadPlayers = typeof overrideNumberOfPlayers === 'number' ? overrideNumberOfPlayers : numberOfPlayers;
-      const result = await pbService.updateDeckCards({
-        userId,
-        selectedCards,
-        numberOfPlayers: payloadPlayers
-      });
-      return { success: true, data: result };
+      // Remove cards
+      for (const card of removedCards) {
+        await pbService.deleteSelectedCard(deckId, card.id);
+      }
+      setRemovedCards([]);
+
+      // Add selected cards
+      for (const card of selectedCards) {
+        await pbService.addSelectedCard(deckId, card.id);
+        setLoadedSelectedCards(prev => [...prev, card]);
+      }
+      setSelectedCards([]);
     } catch (err) {
-      console.error('Error saving selected cards:', err);
-      setError(err.message);
-      return { 
-        success: false, 
-        error: err?.message || 'Failed to save selected cards'
-      };
+      setError(err);
     } finally {
       setIsLoading(false);
     }
-  }, [selectedCards, numberOfPlayers]);
-
-  return {
+  }, [removedCards, selectedCards]);
+  
+return {
     selectedCards,
     total,
     isLoading,

@@ -1,36 +1,5 @@
 import pb from '../pocketbase';
 /**
- * Update deck cards, managing the addition and removal of cards
- */
-export async function updateDeckCards({ userId, selectedCards, numberOfPlayers }) {
-  // Get current selected cards
-  const records = await pb.collection('decks_cards').getList(1, 50, {
-    filter: `deck_id = "${userId}"`
-  });
-
-  // Remove old cards
-  for (const record of records.items) {
-    await pb.collection('decks_cards').delete(record.id);
-  }
-
-  // Add new selected cards
-  for (const card of selectedCards) {
-    await pb.collection('decks_cards').create({
-      deck_id: userId,
-      card_id: card.id
-    });
-  }
-
-  // Update deck settings
-  await pb.collection('decks').update(userId, {
-    number_of_players: numberOfPlayers
-  });
-
-  return { updated: true };
-}
-
-
-/**
  * Small wrapper around the pocketbase client.
  * Keep this thin and predictable so it can be mocked in tests.
  */
@@ -57,13 +26,32 @@ export async function getSelectedCards(deckId) {
   return items.map(item => item.expand.card);
 }
 
+export async function deleteSelectedCard(deckId, cardId) {
+  console.log('Deleting card', cardId, 'from deck', deckId);
+  const items = await pb.collection('decks_cards').getFullList({
+    filter: `deck = "${deckId}" && card = "${cardId}"`,
+  });
+  if (items.length > 0) {
+    await pb.collection('decks_cards').delete(items[0].id);
+  }
+}
+
+export async function addSelectedCard(deckId, cardId) {
+  console.log('Adding card', cardId, 'to deck', deckId);
+  const record = await pb.collection('decks_cards').create({
+    deck: deckId,
+    card: cardId,
+  });
+  return record;
+}
 
 const pbService = {
   getCards,
   getSides,
   getDeck,
   getSelectedCards,
-  updateDeckCards
+  deleteSelectedCard,
+  addSelectedCard,
 };
 
 export default pbService;

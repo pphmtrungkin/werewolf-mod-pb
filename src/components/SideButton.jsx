@@ -7,10 +7,15 @@ export default function SideButton({ id, name, hex_color, selected, onClick }) {
       className={`
         px-6 py-3 rounded-lg font-semibold
         transition-all duration-200 ease-in-out
-        hover:cursor-pointer
-        ${selected ? 'scale-110 shadow-lg' : 'hover:opacity-100'}
+        cursor-pointer
+        ${selected ? 'scale-110 shadow-lg text-white' : 'text-black hover:text-white hover:shadow-md'}
+        ${selected ? '' : 'bg-gray-400 hover:bg-[var(--btn-color)]'}
       `}
-      style={{ backgroundColor: selected ? hex_color : 'gray', color: selected ? 'white' : 'black' }}
+      style={
+        selected
+          ? { backgroundColor: hex_color, '--btn-color': hex_color }
+          : { '--btn-color': hex_color }
+      }
     >
       {name.charAt(0).toUpperCase() + name.slice(1)}
     </button>

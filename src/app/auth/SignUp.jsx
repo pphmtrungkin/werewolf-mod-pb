@@ -1,6 +1,7 @@
-import React, { useState } from "react";
-import { registerUser } from "../../pocketbase";
+import { useState, useContext } from "react";
 import { useNavigate } from "react-router";
+import UserContext from "../../components/UserContext";
+
 const SignUp = () => {
   
   //Set up navigate
@@ -13,7 +14,8 @@ const SignUp = () => {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [confirmPass, setConfirmPass] = useState("");
-  const [loading, setLoading] = useState(false);
+
+  const {register, loading, setLoading} = useContext(UserContext);
 
   //Handle sign up
   const handleSignUp = async (e) => {
@@ -23,12 +25,7 @@ const SignUp = () => {
     } else {
       try {
         setLoading(true);
-        await registerUser(
-          email,
-          password,
-          confirmPass,
-          "" // default empty avatar URL
-        );
+        await register(email, password, username, full_name);
         alert("Account created successfully! Please login.");
         navigate("/login");
       } catch (error) {
