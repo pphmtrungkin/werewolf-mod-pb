@@ -11,6 +11,8 @@ import useSelectedCards from "../hooks/useSelectedCards";
 import { FormControl, InputLabel, Select, MenuItem, IconButton, Alert, Collapse, Slide } from "@mui/material";
 import KeyboardArrowLeftIcon from '@mui/icons-material/KeyboardArrowLeft';
 import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
+import AlertDialog from "../components/AlertDialog";
+import useLobbies from "../hooks/useLobbies";
 
 export default function SetUp() {
   // cards and sides are provided by hooks (encapsulate fetching + state)
@@ -38,6 +40,9 @@ export default function SetUp() {
     setSelectedSideButton(id);
   };
 
+  const [open, setOpen] = useState(false);
+  const { user } = useContext(UserContext);
+  const { hostLobby } = useLobbies(user, selectedDeck ? selectedDeck.id : null);
   
   const {
     selectedCards,
@@ -120,7 +125,7 @@ export default function SetUp() {
             </div>
           ) : (
             <FormControl fullWidth sx={{ marginBlock: '48px' }}>
-              <InputLabel id="deck-select-label" sx={{fontWeight: '600', fontSize: '18px', color: 'var(--secondary)', '&.Mui-focused': { color: 'var(--secondary)' }, }}>Select Deck</InputLabel>
+              <InputLabel id="deck-select-label" sx={{fontWeight: '600', fontSize: '18px'}}>Select Deck</InputLabel>
               <Select
                 labelId="deck-select-label"
                 value={selectedDeck ? selectedDeck.id : ''}
@@ -146,38 +151,30 @@ export default function SetUp() {
         }
         <div className="flex justify-around items-center">
           <IconButton
+            color="primary"
+            size="large"
             onClick={() => setNumberOfPlayers((prev) => Math.max(1, prev - 1))}
-            sx={{
-              backgroundColor: 'rgba(75, 85, 99, 0.8)',
-              '&:hover': {
-                backgroundColor: 'rgba(75, 85, 99, 1)',
-              },
-              color: 'white',
-            }}
           >
-            <KeyboardArrowLeftIcon />
+            <KeyboardArrowLeftIcon fontSize="inherit"/>
           </IconButton>
-          <p className="text-center text-2xl font-semibold">
+          <p className="text-center text-xl font-semibold">
             Players: {numberOfPlayers}
           </p>
           
           <IconButton
+            color="primary"
+            size="large"
             onClick={() => setNumberOfPlayers((prev) => prev + 1)}
-            sx={{
-              backgroundColor: 'rgba(75, 85, 99, 0.8)',
-              '&:hover': {
-                backgroundColor: 'rgba(75, 85, 99, 1)',
-              },
-              color: 'white',
-            }}
           >
-            <KeyboardArrowRightIcon />
+            <KeyboardArrowRightIcon fontSize="inherit"/>
           </IconButton>
         </div>
-        <hr className="w-4/5 mx-auto my-4 border-1 rounded-sm md:my-8" style={{borderColor: 'var(--primary)'}} />
+        <hr className="w-4/5 h-1 mx-auto my-4 border-0 rounded-sm md:my-8" style={{backgroundColor: 'var(--secondary'}} />
 
+        {/* Display total number of selected cards */}
         <p className="text-center text-2xl font-semibold">Total: {total}</p>
-        <hr className="w-4/5 mx-auto my-4 border-1 rounded-sm md:my-8" style={{borderColor: 'var(--primary)'}} />
+        <hr className="w-4/5 h-1 mx-auto my-4 border-0 rounded-sm md:my-8" style={{backgroundColor: 'var(--secondary'}} />
+
         {/* Display number of selected cards*/}
         <p className="text-center text-lg font-medium mb-4">
             Selected Cards: {(selectedCards?.length ?? 0) + (loadedSelectedCards?.length ?? 0)}
@@ -214,35 +211,24 @@ export default function SetUp() {
             ))}
           </div>
         )}
-        <hr className="w-4/5 h-1 mx-auto my-4 bg-gray-100 border-0 rounded-sm md:my-8 dark:bg-gray-700" />
+        <hr className="w-4/5 h-1 mx-auto my-4 border-0 rounded-sm md:my-8" style={{backgroundColor: 'var(--secondary'}} />
+
         <h1 className="text-4xl text-center font-semibold">Timer</h1>
         <div className="flex justify-around items-center my-8">
           <IconButton
             onClick={() => setTimer(timer - 1)}
-            sx={{
-              backgroundColor: 'rgba(75, 85, 99, 0.8)',
-              '&:hover': {
-                backgroundColor: 'rgba(75, 85, 99, 1)',
-              },
-              color: 'white',
-            }}
+            size="large"
           >
-            <KeyboardArrowLeftIcon />
+            <KeyboardArrowLeftIcon fontSize="inherit" />
           </IconButton>
           <h2 className="text-center text-6xl font-normal">
             {formatTime(timer)}
           </h2>
           <IconButton
             onClick={() => setTimer(timer + 1)}
-            sx={{
-              backgroundColor: 'rgba(75, 85, 99, 0.8)',
-              '&:hover': {
-                backgroundColor: 'rgba(75, 85, 99, 1)',
-              },
-              color: 'white',
-            }}
+            size="large"
           >
-            <KeyboardArrowRightIcon />
+            <KeyboardArrowRightIcon fontSize="inherit" />
           </IconButton>
         </div>
         <div className="flex justify-center mt-14">
@@ -255,9 +241,19 @@ export default function SetUp() {
           </button>
         </div>
         <div className="flex justify-center mt-8">
-          <button className="w-1/3 h-12 bg-gray-600 text-white rounded-lg hover:bg-white hover:text-gray-800 text-lg font-semibold transition-colors duration-200">
-            Host a game
-          </button>
+          <AlertDialog
+            open={open}
+            setOpen={setOpen}
+            openButtonTitle="Host a Game"
+            handleConfirm={() => {
+              console.log(user);
+              console.log(selectedDeck.id);
+              hostLobby(user, selectedDeck.id);
+              //navigate('/lobby');
+            }}
+            title="Confirm Setup"
+            message="Are you sure you want to start hosting a game with the current setup?"
+          />
         </div>
       </div>
     </>

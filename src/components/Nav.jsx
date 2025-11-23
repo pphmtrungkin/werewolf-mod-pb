@@ -79,13 +79,13 @@ const Nav = () => {
     <div>
       <div
         className="fixed top-0 w-screen min-h-20 z-10 flex items-center justify-between flex-wrap px-40 py-4"
-        style={{ backgroundColor: 'var(--primary)' }}
+        style={{ backgroundColor: 'var(--secondary)' }}
       >
         <div className="px-2">
-          <Tooltip title="Go to Home"> 
+          <Tooltip title="Go to Setup"> 
             <IconButton
               onClick={() => {
-                navigate("/");
+                navigate("/setup");
               }}
               sx={{
                 ":hover": {

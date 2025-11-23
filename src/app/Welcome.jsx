@@ -18,7 +18,7 @@ function Welcome() {
       <h2 className="text-5xl text-center font-bold tracking-wide animate__animated animate__slideInLeft">
         Werewolf Game
       </h2>
-      <div className="flex justify-center mt-10">
+      <div className="flex flex-col justify-center mt-10">
         <button
           className="bg-white px-6 py-4 rounded-full animate__animated animate__pulse animate__repeat-3 cursor-pointer"
           onClick={() => {
@@ -28,7 +28,16 @@ function Welcome() {
           }}
         >
           <h2 className="text-black text-2xl font-semibold">
-            Press to continue
+            Moderator Setup
+          </h2>
+        </button>
+        <button>
+          <h2 className="text-white text-2xl font-semibold mt-6 underline animate__animated animate__pulse animate__repeat-3 cursor-pointer"
+            onClick={() => {
+                navigate("/lobbies");
+            }}
+          >
+            Join as Player
           </h2>
         </button>
       </div>
