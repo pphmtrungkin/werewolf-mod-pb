@@ -8,7 +8,7 @@ function Welcome() {
   
   //Retrieve previous session
   return (
-    <>
+    <div className="min-h-screen flex flex-col justify-center items-center gap-10 px-4">
       <img
         width={480}
         height='auto'
@@ -18,7 +18,7 @@ function Welcome() {
       <h2 className="text-5xl text-center font-bold tracking-wide animate__animated animate__slideInLeft">
         Werewolf Game
       </h2>
-      <div className="flex flex-col justify-center mt-10">
+      
         <button
           className="bg-white px-6 py-4 rounded-full animate__animated animate__pulse animate__repeat-3 cursor-pointer"
           onClick={() => {
@@ -41,7 +41,6 @@ function Welcome() {
           </h2>
         </button>
       </div>
-    </>
   );
 }
 export default Welcome;

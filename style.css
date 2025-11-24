@@ -1,7 +1,7 @@
 @import "tailwindcss";
 @import 'animate.css';
 
-@layer base {
+@media (prefers-color-scheme: light) {
   :root {
     --text: #0e0b0c;
     --background: #e0dcdd;
@@ -9,7 +9,9 @@
     --secondary: #acb7c9;
     --accent: #48849d;  
   }
-  .dark {
+}
+@media (prefers-color-scheme: dark) {
+  :root {
     --text: #f4f1f2;
     --background: #231f20;
     --primary: #c2b2b5;
@@ -18,12 +20,12 @@
   }
 }
 
-  body {
-    background-color: var(--background);
-    color: var(--text);
-    border: var(--accent)
-  }
+body {
+  background-color: var(--background);
+  color: var(--text);
+  border: var(--accent)
+}
 
-  button:hover {
-    cursor: pointer;
-  }
+button:hover {
+  cursor: pointer;
+}

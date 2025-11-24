@@ -18,10 +18,11 @@ export default function Card({
           <img
             src={url}
             alt={title}
-            className="block bg-[#242020] mix-blend-multiply w-full rounded-2xl h-auto object-cover"
+            style={{backgroundColor: 'var(--background)'}}
+            className="block mix-blend-multiply w-full rounded-2xl h-auto object-cover"
           />
           {count > 1 && (
-            <span className="absolute top-0 right-0 bg-white text-black px-3 py-1 rounded-full text-lg font-semibold">
+            <span className="absolute top-[-8px] right-0 bg-white text-black px-3 py-1 rounded-full text-lg font-semibold">
               {count}
             </span>
           )}

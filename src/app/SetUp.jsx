@@ -8,9 +8,18 @@ import { useCards } from "../hooks/useCards";
 import { useSides } from "../hooks/useSides";
 import useDecks from "../hooks/useDecks";
 import useSelectedCards from "../hooks/useSelectedCards";
-import { FormControl, InputLabel, Select, MenuItem, IconButton, Alert, Collapse, Slide } from "@mui/material";
-import KeyboardArrowLeftIcon from '@mui/icons-material/KeyboardArrowLeft';
-import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
+import {
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  IconButton,
+  Alert,
+  Collapse,
+  Slide,
+} from "@mui/material";
+import KeyboardArrowLeftIcon from "@mui/icons-material/KeyboardArrowLeft";
+import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
 import AlertDialog from "../components/AlertDialog";
 import useLobbies from "../hooks/useLobbies";
 
@@ -42,8 +51,11 @@ export default function SetUp() {
 
   const [open, setOpen] = useState(false);
   const { user } = useContext(UserContext);
-  const { hostLobby } = useLobbies(user, selectedDeck ? selectedDeck.id : null);
-  
+  const { lobby, hostLobby } = useLobbies(
+    user,
+    selectedDeck ? selectedDeck.id : null
+  );
+
   const {
     selectedCards,
     loadedSelectedCards,
@@ -55,9 +67,9 @@ export default function SetUp() {
     isLoading: selectedCardsLoading,
     error: selectedCardsError,
     showMaxPlayersAlert,
-    setShowMaxPlayersAlert
+    setShowMaxPlayersAlert,
   } = useSelectedCards(numberOfPlayers);
-  
+
   useEffect(() => {
     if (selectedDeck) {
       setNumberOfPlayers(selectedDeck.number_of_players);
@@ -82,10 +94,25 @@ export default function SetUp() {
   const formatTime = (totalSeconds) => {
     const minutes = Math.floor(totalSeconds / 60);
     const seconds = totalSeconds % 60;
-    return `${minutes.toString().padStart(2, '0')}:${seconds
+    return `${minutes.toString().padStart(2, "0")}:${seconds
       .toString()
-      .padStart(2, '0')}`;
-  }
+      .padStart(2, "0")}`;
+  };
+
+  const handleCreateLobby = async () => {
+    try {
+      setOpen(false);
+      const result = await hostLobby(user, selectedDeck.id);
+      if (result && result.lobbyId) {
+        navigate("/lobby/" + result.lobbyId);
+      } else {
+        console.error("Failed to host lobby", result);
+      }
+    } catch (err) {
+      console.error("Error hosting lobby", err);
+    }
+  };
+
   return (
     <>
       <div className="my-28">
@@ -97,87 +124,135 @@ export default function SetUp() {
           unmountOnExit
           timeout={300}
         >
-          <Alert 
+          <Alert
             severity="warning"
             variant="filled"
             onClose={() => setShowMaxPlayersAlert(false)}
-            sx={{ 
-              position: 'fixed', 
-              top: '80px', 
-              width: '60%',
+            sx={{
+              position: "fixed",
+              top: "80px",
+              width: "60%",
               zIndex: 20,
             }}
           >
-            Maximum number of players ({numberOfPlayers}) reached. Remove cards to add different ones.
+            Maximum number of players ({numberOfPlayers}) reached. Remove cards
+            to add different ones.
           </Alert>
         </Slide>
 
         <div className="text-4xl font-semibold text-center">Set Up</div>
         {/* Select Deck */}
-        {
-          decksLoading ? (
-            <div className="flex justify-center items-center">
-              <Spinner />
-            </div>
-          ) : decksError ? (
-            <div className="text-red-500 text-center">
-              Error loading decks: {decksError.message}
-            </div>
-          ) : (
-            <FormControl fullWidth sx={{ marginBlock: '48px' }}>
-              <InputLabel id="deck-select-label" sx={{fontWeight: '600', fontSize: '18px'}}>Select Deck</InputLabel>
-              <Select
-                labelId="deck-select-label"
-                value={selectedDeck ? selectedDeck.id : ''}
-                label="Select Deck"
-                onChange={(e) => {
-                  const deck = decks.find((d) => d.id === e.target.value);
-                  setSelectedDeck(deck);
-                }}
-                sx = {{
-                      '& .MuiOutlinedInput-notchedOutline': {
-                        borderWidth: '2px',
-                      },
-                    }}
-                 >
-                {decks.map((deck) => (
-                  <MenuItem key={deck.id} value={deck.id}>
-                    {deck.name}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          )
-        }
+        {decksLoading ? (
+          <div className="flex justify-center items-center">
+            <Spinner />
+          </div>
+        ) : decksError ? (
+          <div className="text-red-500 text-center">
+            Error loading decks: {decksError.message}
+          </div>
+        ) : (
+          <FormControl
+            sx={{
+              width: "80%",
+              display: "flex",
+              marginInline: "auto",
+              marginBlock: "48px",
+            }}
+          >
+            <InputLabel
+              id="deck-select-label"
+              sx={{
+                fontWeight: "600",
+                color: "var(--accent)",
+                "&.Mui-focused": { borderColor: "var(--accent)" },
+              }}
+            >
+              Select Deck
+            </InputLabel>
+            <Select
+              labelId="deck-select-label"
+              value={selectedDeck ? selectedDeck.id : ""}
+              label="Select Deck"
+              onChange={(e) => {
+                const deck = decks.find((d) => d.id === e.target.value);
+                setSelectedDeck(deck);
+              }}
+              MenuProps={{
+                PaperProps: {
+                  sx: {
+                    backgroundColor: "var(--background)",
+                    color: "var(--accent)",
+                  },
+                },
+              }}
+              sx={{
+                color: "var(--text)",
+                "& .MuiOutlinedInput-notchedOutline": {
+                  borderWidth: "2px",
+                  borderColor: "var(--secondary)",
+                },
+                ":hover .MuiOutlinedInput-notchedOutline": {
+                  borderColor: "var(--secondary)",
+                },
+                "& .MuiSvgIcon-root": { color: "var(--secondary)" },
+              }}
+            >
+              {decks.map((deck) => (
+                <MenuItem
+                  key={deck.id}
+                  value={deck.id}
+                  sx={{ color: "var(--text)" }}
+                >
+                  {deck.name}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        )}
         <div className="flex justify-around items-center">
           <IconButton
             color="primary"
             size="large"
             onClick={() => setNumberOfPlayers((prev) => Math.max(1, prev - 1))}
           >
-            <KeyboardArrowLeftIcon fontSize="inherit"/>
+            <KeyboardArrowLeftIcon fontSize="inherit" />
           </IconButton>
           <p className="text-center text-xl font-semibold">
             Players: {numberOfPlayers}
           </p>
-          
+
           <IconButton
             color="primary"
             size="large"
             onClick={() => setNumberOfPlayers((prev) => prev + 1)}
           >
-            <KeyboardArrowRightIcon fontSize="inherit"/>
+            <KeyboardArrowRightIcon fontSize="inherit" />
           </IconButton>
         </div>
-        <hr className="w-4/5 h-1 mx-auto my-4 border-0 rounded-sm md:my-8" style={{backgroundColor: 'var(--secondary'}} />
+        <hr
+          className="w-4/5 h-1 mx-auto my-4 border-0 rounded-sm md:my-8"
+          style={{ backgroundColor: "var(--secondary" }}
+        />
 
         {/* Display total number of selected cards */}
-        <p className="text-center text-2xl font-semibold">Total: {total}</p>
-        <hr className="w-4/5 h-1 mx-auto my-4 border-0 rounded-sm md:my-8" style={{backgroundColor: 'var(--secondary'}} />
+        <p
+          className="text-center text-2xl font-semibold"
+          style={{ color: "var(--text)" }}
+        >
+          Total: {total}
+        </p>
+        <hr
+          className="w-4/5 h-1 mx-auto my-4 border-0 rounded-sm md:my-8"
+          style={{ backgroundColor: "var(--secondary" }}
+        />
 
         {/* Display number of selected cards*/}
-        <p className="text-center text-lg font-medium mb-4">
-            Selected Cards: {(selectedCards?.length ?? 0) + (loadedSelectedCards?.length ?? 0)}
+        <p
+          className="text-center text-lg font-medium mb-4"
+          style={{ color: "var(--text)" }}
+        >
+          Selected Cards:{" "}
+          {(selectedCards?.length ?? 0) + (loadedSelectedCards?.length ?? 0)}
         </p>
 
         <div className="flex justify-around items-center my-8">
@@ -211,23 +286,20 @@ export default function SetUp() {
             ))}
           </div>
         )}
-        <hr className="w-4/5 h-1 mx-auto my-4 border-0 rounded-sm md:my-8" style={{backgroundColor: 'var(--secondary'}} />
+        <hr
+          className="w-4/5 h-1 mx-auto my-4 border-0 rounded-sm md:my-8"
+          style={{ backgroundColor: "var(--secondary" }}
+        />
 
         <h1 className="text-4xl text-center font-semibold">Timer</h1>
         <div className="flex justify-around items-center my-8">
-          <IconButton
-            onClick={() => setTimer(timer - 1)}
-            size="large"
-          >
+          <IconButton onClick={() => setTimer(timer - 1)} size="large">
             <KeyboardArrowLeftIcon fontSize="inherit" />
           </IconButton>
           <h2 className="text-center text-6xl font-normal">
             {formatTime(timer)}
           </h2>
-          <IconButton
-            onClick={() => setTimer(timer + 1)}
-            size="large"
-          >
+          <IconButton onClick={() => setTimer(timer + 1)} size="large">
             <KeyboardArrowRightIcon fontSize="inherit" />
           </IconButton>
         </div>
@@ -245,12 +317,7 @@ export default function SetUp() {
             open={open}
             setOpen={setOpen}
             openButtonTitle="Host a Game"
-            handleConfirm={() => {
-              console.log(user);
-              console.log(selectedDeck.id);
-              hostLobby(user, selectedDeck.id);
-              //navigate('/lobby');
-            }}
+            handleConfirm={handleCreateLobby}
             title="Confirm Setup"
             message="Are you sure you want to start hosting a game with the current setup?"
           />

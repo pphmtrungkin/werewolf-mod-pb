@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useContext } from "react";
+import { useState, useEffect, useContext } from "react";
 import StyleIcon from "@mui/icons-material/Style";
 import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
 import { Tooltip } from '@mui/material';
 import { useNavigate } from "react-router";
 import { UserContext } from "./UserContext";
+import ThemeContext from "./ThemeContext";
 import { IconButton } from "@mui/material";
 import { Outlet } from "react-router";
 
@@ -34,47 +35,8 @@ const Spinner = () => {
 const Nav = () => {
   const { user, avatar, loading } = useContext(UserContext);
   const navigate = useNavigate();
-  const [isDark, setIsDark] = useState(() => {
-    try {
-      if (typeof document !== 'undefined') {
-        return document.documentElement.classList.contains('dark');
-      }
-      return false;
-    } catch (e) {
-      return false;
-    }
-  });
-
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem('theme');
-      if (stored === 'dark') {
-        document.documentElement.classList.add('dark');
-        setIsDark(true);
-      } else if (stored === 'light') {
-        document.documentElement.classList.remove('dark');
-        setIsDark(false);
-      }
-    } catch (e) {
-      // ignore
-    }
-  }, []);
-
-  const toggleTheme = () => {
-    try {
-      const next = !document.documentElement.classList.contains('dark');
-      if (next) {
-        document.documentElement.classList.add('dark');
-        localStorage.setItem('theme', 'dark');
-      } else {
-        document.documentElement.classList.remove('dark');
-        localStorage.setItem('theme', 'light');
-      }
-      setIsDark(next);
-    } catch (e) {
-      // ignore
-    }
-  };
+  const { isDarkMode, toggleTheme } = useContext(ThemeContext);
+  
   return (
     <div>
       <div
@@ -99,9 +61,9 @@ const Nav = () => {
           </Tooltip>
         </div>
         <div className="flex items-center gap-4">
-          <Tooltip title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}>
+          <Tooltip title={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}>
             <IconButton onClick={toggleTheme} size="large" color="inherit">
-              {isDark ? <Brightness7Icon className="text-white" /> : <Brightness4Icon className="text-white" />}
+              {isDarkMode ? <Brightness7Icon /> : <Brightness4Icon />}
             </IconButton>
           </Tooltip>
           <button

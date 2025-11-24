@@ -1,11 +1,33 @@
 import pb from '../pocketbase'; // Adjust the import path as necessary
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useContext, use } from 'react';
+import UserContext from '../components/UserContext';
+import useDecks from './useDecks';
 
-export default function useLobbies(user, selectedDeckId) {
+export default function useLobbies() {
   // State variables
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [lobby, setLobby] = useState(null);
+  // read user from context if not passed
+  const user = useContext(UserContext).user;
+  const selectedDeckId = useDecks().selectedDeck?.id;
+
+  useEffect(() => {
+    // Cleanup on unmount
+    return () => {
+      setLobby(null);
+      setLoading(false);
+      setError(null);
+    };
+  }, []);
+
+  useEffect(() => {
+    console.log('Lobby state changed:', lobby);
+  }, [lobby]);
+
+  useEffect(() => {
+    console.log(user, selectedDeckId);
+  }, [user, selectedDeckId]);
 
   // Join an existing lobby
   async function joinLobby(lobbyId, user) {
@@ -78,7 +100,9 @@ export default function useLobbies(user, selectedDeckId) {
       return "192.168.1.";
   }
 
-  async function hostLobby(user, selectedDeckId) {
+  async function hostLobby() {
+    const hostUser = user;
+    const deckIdToUse = selectedDeckId;
     const roomCodeLength = 6;
     const lanPrefix = await getLanPrefix();
 
@@ -90,21 +114,23 @@ export default function useLobbies(user, selectedDeckId) {
     const roomCode = generateRoomCode(roomCodeLength);
 
     const record = await pb.collection("lobbies").create({
-        name: user.name + "'s Lobby", 
-        code: roomCode,
-        status: "waiting",
-        ip_prefix: lanPrefix,
-        moderator: user.id,
-        deck: selectedDeckId,
-        current_day: 0,
-        current_night: 0
+      name: hostUser.name + "'s Lobby", 
+      code: roomCode,
+      status: "waiting",
+      ip_prefix: lanPrefix,
+      moderator: hostUser.id,
+      deck: deckIdToUse,
+      current_day: 0,
+      current_night: 0
     });
 
+    setLobby(record);
+
     return {
-        ok: true,
-        lobbyId: record.id,
-        roomCode,
-        lanPrefix
+      ok: true,
+      lobbyId: record.id,
+      roomCode,
+      lanPrefix
     };
   }
 

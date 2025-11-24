@@ -20,7 +20,7 @@ function TabPanel(props) {
     >
       {value === index && (
         <Box sx={{ p: 3 }}>
-          <Typography>{children}</Typography>
+          {children}
         </Box>
       )}
     </div>
@@ -485,17 +485,17 @@ const Account = () => {
 
   return (
     <Box
-      sx={{ bgcolor: 'background.paper', display: 'flex', marginTop: 16 }}
+      sx={{ backgroundColor: 'background.default', display: 'flex', marginTop: 16 }}
     >
       <Tabs
         orientation="vertical"
         value={value}
         onChange={handleChange}
         aria-label="Vertical tabs example"
-        sx={{ borderRight: 1, borderColor: 'divider', minWidth: '160px' }}
+        sx={{ borderRight: 1, borderColor: 'primary.main', minWidth: '200px' }}
       >
-        <Tab  label="Item One" {...a11yProps(0)} />
-        <Tab  label="Item Two" {...a11yProps(1)} />
+        <Tab sx={{fontWeight: '600'}} label="Account Settings" {...a11yProps(0)} />
+        <Tab sx={{fontWeight: '600'}} label="Password Reset" {...a11yProps(1)} />
       </Tabs>
       <TabPanel value={value} index={0}>
         <AccountSetting user={user} />

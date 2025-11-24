@@ -31,12 +31,17 @@ export default function AlertDialog({ open, setOpen, openButtonTitle, handleConf
         </DialogContentText>
       </DialogContent>
       <DialogActions>
-        <button type="button" onClick={handleClose} className="bg-gray-500 text-white rounded-lg px-4 py-2 hover:bg-red-500 transistion-colors duration-200">
+        <Button onClick={handleClose} color="secondary" variant="contained">
           Cancel
-        </button>
-        <button type="button" onClick={() => { handleConfirm(); handleClose(); }} className="bg-gray-500 text-white rounded-lg px-4 py-2 hover:bg-blue-500 transistion-colors duration-200">
+        </Button>
+        <Button
+          onClick={() => { handleConfirm(); handleClose(); }}
+          color="primary"
+          variant="contained"
+          autoFocus
+        >
           Confirm
-        </button>
+        </Button>
       </DialogActions>
     </Dialog>
   </>
