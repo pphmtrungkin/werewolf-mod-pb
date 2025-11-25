@@ -22,6 +22,7 @@ import { UserProvider } from './components/UserContext';
 import AuthLayout from './app/auth/AuthLayout';
 import { ThemeProvider } from './components/ThemeContext';
 import Lobby from './app/Lobby';
+import JoinLobby from './app/JoinLobby';
 
 
 function App() {
@@ -69,7 +70,17 @@ function App() {
       ],
     },
     {
-      path: '/lobby/:id',
+      path: '/joinLobby',
+      Component: AuthLayout,
+      children: [
+        {
+          path: '',
+          element: <JoinLobby />,
+        },
+      ],
+    },
+    {
+      path: '/lobby/:lobbyId',
       Component: AuthLayout,
       children: [
         {

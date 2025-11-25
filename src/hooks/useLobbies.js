@@ -1,9 +1,9 @@
 import pb from '../pocketbase'; // Adjust the import path as necessary
-import { useEffect, useState, useContext, use } from 'react';
+import { useEffect, useState, useContext } from 'react';
 import UserContext from '../components/UserContext';
 import useDecks from './useDecks';
 
-export default function useLobbies() {
+export default function useLobbies(lobbyId = null) {
   // State variables
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -12,23 +12,28 @@ export default function useLobbies() {
   const user = useContext(UserContext).user;
   const selectedDeckId = useDecks().selectedDeck?.id;
 
-  useEffect(() => {
-    // Cleanup on unmount
-    return () => {
-      setLobby(null);
+  async function fetchLobby(lobbyId) {
+    setLoading(true);
+    setError(null);
+    try {
+      const lobbyDetails = await pb.collection('lobbies').getOne(lobbyId, { expand: 'deck' });
+      setLobby(lobbyDetails);
+      return lobbyDetails;
+    } catch (error) {
+      console.error('Error fetching lobby:', error);
+      setError(error);
+      throw error;
+    } finally {
       setLoading(false);
-      setError(null);
-    };
-  }, []);
-
+    }
+  }
+  // Fetch lobby details on mount or when lobbyId changes 
   useEffect(() => {
-    console.log('Lobby state changed:', lobby);
-  }, [lobby]);
-
-  useEffect(() => {
-    console.log(user, selectedDeckId);
-  }, [user, selectedDeckId]);
-
+    if (lobbyId) {
+      console.log('Fetching lobby with ID:', lobbyId);
+      fetchLobby(lobbyId);
+    }
+  }, [lobbyId]);
   // Join an existing lobby
   async function joinLobby(lobbyId, user) {
     const lobby = await pb.collection('lobbies').getOne(lobbyId, { expand: 'deck' });
@@ -61,11 +66,12 @@ export default function useLobbies() {
       rtc.createDataChannel("dummy");
 
       rtc.onicecandidate = (event) => {
+        console.log('ICE candidate:', event.candidate);
         if (!event.candidate || prefixResolved) return;
 
         const candidate = event.candidate.candidate;
         const ipMatch = candidate.match(/(\d{1,3}(\.\d{1,3}){3})/);
-
+        console.log('Candidate IP match:', ipMatch);
         if (ipMatch) {
             const ip = ipMatch[1];
 
@@ -75,6 +81,7 @@ export default function useLobbies() {
 
             prefixResolved = true;
             resolve(prefix);
+            console.log('Resolved LAN prefix:', prefix);
         }
       };
 

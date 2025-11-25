@@ -51,10 +51,8 @@ export default function SetUp() {
 
   const [open, setOpen] = useState(false);
   const { user } = useContext(UserContext);
-  const { lobby, hostLobby } = useLobbies(
-    user,
-    selectedDeck ? selectedDeck.id : null
-  );
+  const { hostLobby } = useLobbies(null);
+
 
   const {
     selectedCards,

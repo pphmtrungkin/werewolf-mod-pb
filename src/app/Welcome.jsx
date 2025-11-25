@@ -34,7 +34,7 @@ function Welcome() {
         <button>
           <h2 className="text-white text-2xl font-semibold mt-6 underline animate__animated animate__pulse animate__repeat-3 cursor-pointer"
             onClick={() => {
-                navigate("/lobbies");
+                navigate("/joinLobby");
             }}
           >
             Join as Player
