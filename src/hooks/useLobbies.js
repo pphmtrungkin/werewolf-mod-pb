@@ -1,4 +1,4 @@
-import pb from '../pocketbase'; // Adjust the import path as necessary
+import pb from '../pocketbase.js'; // Adjust the import path as necessary
 import { useEffect, useState, useContext } from 'react';
 import UserContext from '../components/UserContext';
 import useDecks from './useDecks';
@@ -36,20 +36,21 @@ export default function useLobbies(lobbyId = null) {
   }, [lobbyId]);
   // Join an existing lobby
   async function joinLobby(lobbyId, user) {
-    const lobby = await pb.collection('lobbies').getOne(lobbyId, { expand: 'deck' });
+    const ipPrefix = await getLanPrefix();
+    const ipAddress = await getLanIpAddress();
     
-    if (lobby.players.length >= lobby.expand.deck.number_of_players) {
-      throw new Error('Lobby is full');
+    const data = {
+      lobby: lobbyId,
+      player: user.id,
+      connected: true,
+      alive: true,
+      ip_prefix: ipPrefix,
+      ip_address: ipAddress
     }
 
     try {
-      const updatedPlayers = [...lobby.players, user.id];
-
-      const updatedLobby = await pb.collection('lobbies').update(lobbyId, {
-        players: updatedPlayers,
-      });
-
-      return updatedLobby;
+      const createdPlayer = await pb.collection('lobby_players').create(data);
+      console.log('Joined lobby successfully:', createdPlayer);
     } catch (error) {
       console.error('Error joining lobby:', error);
       throw error;
@@ -107,6 +108,32 @@ export default function useLobbies(lobbyId = null) {
       return "192.168.1.";
   }
 
+  const getLanIpAddress = async () => {
+    return new Promise((resolve) => {
+      const rtc = new RTCPeerConnection({ iceServers: [] });
+
+      rtc.createDataChannel("dummy");
+
+      rtc.onicecandidate = (event) => {
+        console.log('ICE candidate:', event.candidate);
+        if (!event.candidate) return;
+
+        const candidate = event.candidate.candidate;
+        const ipMatch = candidate.match(/(\d{1,3}(\.\d{1,3}){3})/);
+        console.log('Candidate IP match:', ipMatch);
+        if (ipMatch) {
+            const ip = ipMatch[1];
+            resolve(ip);
+            console.log('Resolved LAN IP address:', ip);
+        }
+      };
+
+      rtc.createOffer().then((offer) => rtc.setLocalDescription(offer));
+      setTimeout(() => resolve(null), 1000);
+    })
+  };
+  
+  // Host a new lobby
   async function hostLobby() {
     const hostUser = user;
     const deckIdToUse = selectedDeckId;

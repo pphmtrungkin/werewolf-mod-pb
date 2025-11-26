@@ -3,44 +3,13 @@ import { useParams } from 'react-router';
 import useLobbies from '../hooks/useLobbies';
 import  UserContext from '../components/UserContext';
 import { useContext } from 'react';
+import useJoinedPlayers from '../hooks/useJoinedPlayers';
 
-export default function Lobby() {
+export default function LobbyDetails() {
   const { lobbyId } = useParams();
-  const { lobby } = useLobbies(lobbyId);
-  const [codeVerified, setCodeVerified] = useState(false);
-  const [error, setError] = useState(null);
-  const { user } = useContext(UserContext);
+  const { fetchLobby, lobby, loading, error } = useLobbies(lobbyId);
+  const { joinedPlayers, loading: playersLoading } = useJoinedPlayers(lobbyId);
 
-
-  useEffect(() => {
-    console.log('Lobby component mounted or lobbyId changed:', lobbyId);
-    console.log('Lobby data:', lobby);
-  }, [lobby]);
-
-  useEffect(() => {
-    if (!user) {
-      setError("You must login before joining a lobby. You can either login or continue as a guest by entering your name below.");
-    }
-  }, [user]);
-  
-  return (
-    <div>
-      {!codeVerified ? (
-        <JoinLobbyForm
-          username={user ? user.name : null}
-          setError={setError}
-          setCodeVerified={setCodeVerified}
-          lobby={lobby}
-        />
-      ) : (
-        <LobbyDetails lobby={lobby} />
-      )}
-      {error && <p style={{ color: 'red' }}>{error}</p>}
-    </div>
-  );
-}
-
-function LobbyDetails({ lobby }) {
   return (
     <div>
       <h1>Lobby Component</h1>
@@ -50,52 +19,17 @@ function LobbyDetails({ lobby }) {
       {lobby && (<div>
         <p>Lobby ID: {lobby.id}</p>
         <p>Players:</p>
+        {playersLoading ? (
+          <p>Loading players...</p>
+        ) : (
+          <ul>
+            {joinedPlayers.map((player) => (
+              <li key={player.id}>{player.expand.player.name}</li>
+            ))}
+          </ul>
+        )}
       </div>
       )}
     </div>
-  );
-}
-
-function JoinLobbyForm({username, setError, setCodeVerified, lobby }) {
-
-  const [code, setCode] = useState('');
-  const [name, setName] = useState('');
-
-  const handleVerifyCode = (e) => {
-    e.preventDefault();
-    const lobbyCode = e.target.lobbyCode.value;
-    console.log('Verifying lobby code:', lobbyCode);
-    if (lobby && lobby.code === lobbyCode) {
-      setCodeVerified(true);
-    } else {
-      alert('Invalid lobby code. Please try again.');
-    }
-    // Add logic to verify the lobby code
-  };
-
-  return (
-    <form onSubmit={handleVerifyCode}>
-      {username ? (
-        <p>Welcome back, {user.name}!</p>
-      ) : (
-        <>
-          <label>
-            Enter Your Name:
-            <input
-              type="text"
-              name="playerName"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-            />
-          </label>
-        </>
-      )}
-      <label>
-        Enter Lobby Code:
-        <input type="text" name="lobbyCode" />
-      </label>
-      <input type="submit" value="Join Lobby" />
-    </form>
   );
 }
