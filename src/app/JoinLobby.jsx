@@ -74,6 +74,40 @@ const JoinLobby = () => {
     setAuthError('');
   }
 
+  const handleJoinLobby = async () => {
+    if (!selectedLobby) return;
+    if (!authCode) { setAuthError('Please enter the lobby code'); return; }
+    if (authCode !== (selectedLobby.code || '').toUpperCase()) {
+      setAuthError('Invalid code for this lobby');
+      return;
+    }
+    try {
+      setLoading(true);
+      await joinLobby(selectedLobby.id, user);
+      setSelectedLobby(null);
+      navigate('/lobby/' + selectedLobby.id);
+    } catch (err) {
+      console.error('Could not join', err);
+      setAuthError(err.message || 'Could not join lobby');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  handleCreateGuest = async () => {
+    if (!name) return;
+    try {
+      setLoading(true);
+      const guestUser = await pb.collection('users').createGuest({ name });
+      // set user in context
+      pb.authStore.save(guestUser, '');
+      navigate('/lobby/' + selectedLobby.id);
+    } catch (err) {
+      console.error('Could not create guest user', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <Box className="my-20 mx-auto max-w-3xl">
@@ -124,20 +158,7 @@ const JoinLobby = () => {
                       inputProps={{ maxLength: 20 }}
                     >
                       {' '}
-                      <Button variant="contained" sx={{ mt: 2 }} onClick={async () => {
-                        if (!name) return;
-                        try {
-                          setLoading(true);
-                          const guestUser = await pb.collection('users').createGuest({ name });
-                          // set user in context
-                          pb.authStore.save(guestUser, '');
-                          navigate('/lobby/' + selectedLobby.id);
-                        } catch (err) {
-                          console.error('Could not create guest user', err);
-                        } finally {
-                          setLoading(false);
-                        }
-                      }}>Continue as Guest</Button>
+                      <Button variant="contained" sx={{ mt: 2 }} onClick={handleCreateGuest}>Continue as Guest</Button>
                       
                     </TextField>
                   </Box>
@@ -157,50 +178,14 @@ const JoinLobby = () => {
               onKeyDown={async (ev) => {
                 if (ev.key === 'Enter') {
                   ev.preventDefault();
-                  // reuse same join logic as the Join button
-                  if (!selectedLobby) return;
-                  if (!authCode) { setAuthError('Please enter the lobby code'); return; }
-                  if (authCode !== (selectedLobby.code || '').toUpperCase()) {
-                    setAuthError('Invalid code for this lobby');
-                    return;
-                  }
-                  try {
-                    setLoading(true);
-                    await joinLobby(selectedLobby.id, user);
-                    setSelectedLobby(null);
-                    navigate('/lobby/' + selectedLobby.id);
-                  } catch (err) {
-                    console.error('Could not join', err);
-                    setAuthError(err.message || 'Could not join lobby');
-                  } finally {
-                    setLoading(false);
-                  }
+                  await handleJoinLobby();
                 }
               }}
             />
           </DialogContent>
           <DialogActions>
             <Button onClick={handleClose} color="primary">Cancel</Button>
-            <Button onClick={async () => {
-              if (!selectedLobby) return;
-              if (!authCode) { setAuthError('Please enter the lobby code'); return; }
-              if (authCode !== (selectedLobby.code || '').toUpperCase()) {
-                setAuthError('Invalid code for this lobby');
-                return;
-              }
-              // codes match; attempt to join
-              try {
-                setLoading(true);
-                await joinLobby(selectedLobby.id, user);
-                setSelectedLobby(null);
-                navigate('/lobby/' + selectedLobby.id);
-              } catch (err) {
-                console.error('Could not join', err);
-                setAuthError(err.message || 'Could not join lobby');
-              } finally {
-                setLoading(false);
-              }
-            }} variant="contained">Join</Button>
+            <Button onClick={handleJoinLobby} variant="contained">Join</Button>
           </DialogActions>
         </Dialog>
 

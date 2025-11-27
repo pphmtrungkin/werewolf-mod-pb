@@ -50,10 +50,49 @@ export default function useLobbies(lobbyId = null) {
 
     try {
       const createdPlayer = await pb.collection('lobby_players').create(data);
+      // store the created record id locally so we can remove it on unload if needed
+      try { localStorage.setItem('lobby_player_id', createdPlayer.id); } catch (_) {}
       console.log('Joined lobby successfully:', createdPlayer);
+      return createdPlayer;
     } catch (error) {
       console.error('Error joining lobby:', error);
       throw error;
+    }
+  }
+
+  // Leave a lobby: remove the lobby_players record for this user and lobby
+  async function leaveLobby(lobbyIdArg = null, userArg = null) {
+    const targetLobbyId = lobbyIdArg || (lobby && lobby.id) || null;
+    const targetUser = userArg || user;
+    if (!targetLobbyId || !targetUser) return { ok: false, message: 'missing lobby or user' };
+
+    try {
+      // Try to use stored lobby_player_id first
+      const storedId = (() => {
+        try { return localStorage.getItem('lobby_player_id'); } catch (_) { return null; }
+      })();
+      if (storedId) {
+        try {
+          await pb.collection('lobby_players').delete(storedId);
+          try { localStorage.removeItem('lobby_player_id'); } catch (_) {}
+          return { ok: true };
+        } catch (err) {
+          // fallthrough to search by filter
+          console.warn('Failed to delete by stored id, falling back to query', err);
+        }
+      }
+
+      // find any lobby_players records matching lobby + player
+      const records = await pb.collection('lobby_players').getFullList({ filter: `lobby = "${targetLobbyId}" && player = \"${targetUser.id}\"` });
+      if (!records || records.length === 0) return { ok: false, message: 'no records found' };
+      for (const r of records) {
+        try { await pb.collection('lobby_players').delete(r.id); } catch (err) { console.warn('Failed to delete lobby_player', r.id, err); }
+      }
+      try { localStorage.removeItem('lobby_player_id'); } catch (_) {}
+      return { ok: true };
+    } catch (error) {
+      console.error('Error leaving lobby:', error);
+      return { ok: false, error };
     }
   }
 
@@ -109,28 +148,77 @@ export default function useLobbies(lobbyId = null) {
   }
 
   const getLanIpAddress = async () => {
+    // Promise-based IP discovery using RTCPeerConnection
     return new Promise((resolve) => {
-      const rtc = new RTCPeerConnection({ iceServers: [] });
-
-      rtc.createDataChannel("dummy");
-
-      rtc.onicecandidate = (event) => {
-        console.log('ICE candidate:', event.candidate);
-        if (!event.candidate) return;
-
-        const candidate = event.candidate.candidate;
-        const ipMatch = candidate.match(/(\d{1,3}(\.\d{1,3}){3})/);
-        console.log('Candidate IP match:', ipMatch);
-        if (ipMatch) {
-            const ip = ipMatch[1];
-            resolve(ip);
-            console.log('Resolved LAN IP address:', ip);
+      try {
+        const ip_dups = {};
+        const RTCPeerConnection = window.RTCPeerConnection || window.mozRTCPeerConnection || window.webkitRTCPeerConnection;
+        if (!RTCPeerConnection) {
+          resolve(null);
+          return;
         }
-      };
 
-      rtc.createOffer().then((offer) => rtc.setLocalDescription(offer));
-      setTimeout(() => resolve(null), 1000);
-    })
+        const servers = { iceServers: [{ urls: 'stun:stun.services.mozilla.com' }] };
+        const pc = new RTCPeerConnection(servers);
+        let resolved = false;
+
+        function cleanup() {
+          try { pc.onicecandidate = null; pc.close(); } catch (_) {}
+        }
+
+        function handleCandidate(candidate) {
+          const ip_regex = /([0-9]{1,3}(?:\.[0-9]{1,3}){3}|[a-f0-9]{1,4}(?::[a-f0-9]{1,4}){7})/i;
+          const match = ip_regex.exec(candidate);
+          if (!match) return;
+          const ip = match[1];
+          if (ip_dups[ip]) return;
+          ip_dups[ip] = true;
+
+          // prefer local/private addresses
+          const localRegex = /^(192\.168\.|169\.254\.|10\.|172\.(1[6-9]|2\d|3[01]))/;
+          if (!resolved && localRegex.test(ip)) {
+            resolved = true;
+            cleanup();
+            resolve(ip);
+          }
+        }
+
+        pc.onicecandidate = (event) => {
+          if (event && event.candidate && event.candidate.candidate) {
+            handleCandidate(event.candidate.candidate);
+          }
+        };
+
+        try { pc.createDataChannel(''); } catch (_) {}
+
+        pc.createOffer().then((offer) => pc.setLocalDescription(offer)).catch(() => {});
+
+        // fallback: inspect localDescription after a short delay
+        setTimeout(() => {
+          try {
+            if (pc.localDescription && pc.localDescription.sdp) {
+              const lines = pc.localDescription.sdp.split('\n');
+              for (const line of lines) {
+                if (line.indexOf('a=candidate:') === 0) handleCandidate(line);
+              }
+            }
+
+            if (!resolved) {
+              const ips = Object.keys(ip_dups);
+              const local = ips.find(ip => /^(192\.168\.|169\.254\.|10\.|172\.(1[6-9]|2\d|3[01]))/.test(ip));
+              cleanup();
+              resolve(local || (ips.length ? ips[0] : null));
+            }
+          } catch (err) {
+            cleanup();
+            resolve(null);
+          }
+        }, 1000);
+      } catch (err) {
+        console.warn('getLanIpAddress failed', err);
+        resolve(null);
+      }
+    });
   };
   
   // Host a new lobby
@@ -183,6 +271,7 @@ export default function useLobbies(lobbyId = null) {
       loading,
       error,
       hostLobby,
-      joinLobby
+      joinLobby,
+      leaveLobby
   };
 }

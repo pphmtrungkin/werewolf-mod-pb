@@ -1,14 +1,42 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useContext } from 'react';
 import { useParams } from 'react-router';
 import useLobbies from '../hooks/useLobbies';
-import  UserContext from '../components/UserContext';
-import { useContext } from 'react';
+import UserContext from '../components/UserContext';
+import { useNavigate } from 'react-router';
+
+// When the user closes the tab or navigates away we should remove them from the lobby_players
 import useJoinedPlayers from '../hooks/useJoinedPlayers';
 
 export default function LobbyDetails() {
   const { lobbyId } = useParams();
-  const { fetchLobby, lobby, loading, error } = useLobbies(lobbyId);
+  const { fetchLobby, lobby, loading, error, leaveLobby } = useLobbies(lobbyId);
   const { joinedPlayers, loading: playersLoading } = useJoinedPlayers(lobbyId);
+  const { user } = useContext(UserContext);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    // register unload / visibility handlers
+    const handleBeforeUnload = (e) => {
+      // best-effort: try to call leaveLobby (async, fire-and-forget)
+      try { leaveLobby(lobbyId, user); } catch (_) {}
+    };
+
+    const handleVisibility = () => {
+      if (document.hidden) {
+        try { leaveLobby(lobbyId, user); } catch (_) {}
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('pagehide', handleBeforeUnload);
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('pagehide', handleBeforeUnload);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
+  }, [leaveLobby, lobbyId, user]);
 
   return (
     <div>
