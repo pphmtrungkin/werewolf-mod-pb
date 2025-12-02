@@ -21,6 +21,7 @@ export const UserProvider = ({ children }) => {
   const [user, setUser] = useState(pb.authStore.model || null);
   const [avatar, setAvatar] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
 
   useEffect(() => {
@@ -40,17 +41,25 @@ export const UserProvider = ({ children }) => {
     }
   }, [user]);
 
-  const register = useCallback(async (email, password, username) => {
+  const register = useCallback(async (email, password, username, full_name) => {
     setLoading(true);
     try {
-      const record = await pb.collection('users').create({
+      // Create the user account first
+      const data = {
         email,
         password,
+        passwordConfirm: password,
         username,
-      });
-      return { record };
+        full_name,
+        emailVisibility: false,
+      };
+
+      const record = await pb.collection('users').create(data);
+      
+      return { record, user: authData.record };
     } catch (error) {
-      return { error };
+      console.error('Registration error:', error);
+      throw error;
     } finally {
       setLoading(false);
     }
@@ -58,11 +67,27 @@ export const UserProvider = ({ children }) => {
 
   const login = useCallback(async (email, password) => {
     setLoading(true);
+    console.log("Attempting login for", email);
     try {
       const authData = await pb.collection('users').authWithPassword(email, password);
+      // Use authData.record instead of user (which is still null)
+      const url = authData.record.avatar 
+        ? `${pb.baseUrl}/api/files/${authData.record.collectionId}/${authData.record.id}/${authData.record.avatar}`
+        : null;
+      
+      setUser(authData.record);
+      setToken(authData.token);
+      setAvatar(url);
       return { authData };
     } catch (error) {
-      return { error };
+      const mfaId =  error.response?.mfaId;
+      console.log('MFA ID:', mfaId);
+      if (!mfaId) {
+        console.error('Login error:', error);
+      }
+      const result = await pb.collection('users').requestOTP(email);
+      console.log('OTP requested:', result);
+      return { error, mfaId };
     } finally {
       setLoading(false);
     }

@@ -81,20 +81,26 @@ const JoinLobby = () => {
       setAuthError('Invalid code for this lobby');
       return;
     }
-    try {
-      setLoading(true);
-      await joinLobby(selectedLobby.id, user);
-      setSelectedLobby(null);
-      navigate('/lobby/' + selectedLobby.id);
-    } catch (err) {
-      console.error('Could not join', err);
-      setAuthError(err.message || 'Could not join lobby');
-    } finally {
-      setLoading(false);
+    
+    if (!user) {
+      setAuthError('You must be signed in to join a lobby');
+      return;
     }
+
+      setLoading(true);
+      setAuthError('');
+      const result = await joinLobby(selectedLobby.id, user);
+      if (result.error) {
+        setAuthError(`Failed to join: ${result.error.message}`);
+        setLoading(false);
+        return;
+      } else {
+        handleClose();
+        navigate('/lobby/' + selectedLobby.id);
+      }
   };
 
-  handleCreateGuest = async () => {
+  const handleCreateGuest = async () => {
     if (!name) return;
     try {
       setLoading(true);

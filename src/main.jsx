@@ -1,12 +1,9 @@
-import React, {useState, useEffect, useMemo} from 'react'
+import React from 'react'
 import ReactDOM from 'react-dom/client'
 import '../style.css'
-import { createTheme, CssBaseline } from '@mui/material'
 import {
   createBrowserRouter,
-  BrowserRouter,
   RouterProvider,
-  Routes, Route
 } from "react-router";
 import Welcome from './app/Welcome';
 import SignUp from './app/auth/SignUp';
@@ -17,94 +14,89 @@ import Account from './app/Account';
 import ErrorPage from './components/ErrorPage';
 import Game from './app/Game'
 import Players from './app/Players'
-import {DeckProvider} from './components/DeckContext'
 import { UserProvider } from './components/UserContext';
 import AuthLayout from './app/auth/AuthLayout';
 import { ThemeProvider } from './components/ThemeContext';
 import Lobby from './app/Lobby';
 import JoinLobby from './app/JoinLobby';
+import OTP from './app/auth/OTP';
 
+const router = createBrowserRouter([
+  {
+    path: "/",
+    element: <Welcome />,
+  },
+  {
+    path: "/auth",
+    Component: AuthLayout,
+    children: [
+      { path: "signup", element: <SignUp /> },
+      { path: "login", element: <Login /> },
+      { path: "otp", element: <OTP /> },
+    ],
+  },
+  {
+    path: "/setup",
+    Component: Nav,
+    children: [
+      {
+        path: "",
+        element: <SetUp />,
+      },
+    ],
+  },
+  {
+    path: "/players",
+    element: <Players />,
+    children: [
+      {
+        path: "",
+        element: <Nav />,
+      },
+    ],
+  },
+  {
+    path: "/account",
+    Component: Nav,
+    children: [
+      {
+        path: "",
+        element: <Account />,
+      },
+    ],
+  },
+  {
+    path: '/joinLobby',
+    Component: AuthLayout,
+    children: [
+      {
+        path: '',
+        element: <JoinLobby />,
+      },
+    ],
+  },
+  {
+    path: '/lobby/:lobbyId',
+    Component: AuthLayout,
+    children: [
+      {
+        path: '',
+        element: <Lobby />,
+      },
+    ],
+  },
+  {
+    path: "*",
+    errorElement: <ErrorPage />,
+  }
+]);
 
-function App() {
-  const router = createBrowserRouter([
-    {
-      path: "/",
-      element: <Welcome />,
-    },
-    {
-      path: "/auth",
-      Component: AuthLayout,
-      children: [
-        { path: "signup", element: <SignUp /> },
-        { path: "login", element: <Login /> },
-      ],
-    },
-    {
-      path: "/setup",
-      Component: Nav,
-      children: [
-        {
-          path: "",
-          element: <SetUp />,
-        },
-      ],
-    },
-    {
-      path: "/players",
-      element: <Players />,
-      children: [
-        {
-          path: "",
-          element: <Nav />,
-        },
-      ],
-    },
-    {
-      path: "/account",
-      Component: Nav,
-      children: [
-        {
-          path: "",
-          element: <Account />,
-        },
-      ],
-    },
-    {
-      path: '/joinLobby',
-      Component: AuthLayout,
-      children: [
-        {
-          path: '',
-          element: <JoinLobby />,
-        },
-      ],
-    },
-    {
-      path: '/lobby/:lobbyId',
-      Component: AuthLayout,
-      children: [
-        {
-          path: '',
-          element: <Lobby />,
-        },
-      ],
-    },
-    {
-      path: "*",
-      errorElement: <ErrorPage />,
-    }
-  ]);
-
-  return (
-    <React.StrictMode>
-      <UserProvider>
-        <ThemeProvider>
-          <RouterProvider router={router} />
-        </ThemeProvider>
-      </UserProvider>
-    </React.StrictMode>
-  );
-}
-
-const root = ReactDOM.createRoot(document.getElementById('root'));
-root.render(<App />);
+ReactDOM.createRoot(document.getElementById('root')).render(
+  <React.StrictMode>
+    <UserProvider>
+      <ThemeProvider>
+        <RouterProvider router={router} />
+      </ThemeProvider>
+    </UserProvider>
+  </React.StrictMode>
+);

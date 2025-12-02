@@ -10,10 +10,10 @@ function Welcome() {
   return (
     <div className="min-h-screen flex flex-col justify-center items-center gap-10 px-4">
       <img
-        width={480}
+        width={400}
         height='auto'
         src="https://img.freepik.com/premium-vector/silhouette-wolf-howling-full-moon-vector-illustration-pagan-totem-wiccan-familiar-spirit-art_726692-254.jpg"
-        className="bg-[#231F20] h-auto mx-auto animate__animated animate__fadeIn"
+        className="bg-[#231F20] h-auto mx-auto animate__animated animate__fadeIn rounded-full"
       />
       <h2 className="text-5xl text-center font-bold tracking-wide animate__animated animate__slideInLeft">
         Werewolf Game

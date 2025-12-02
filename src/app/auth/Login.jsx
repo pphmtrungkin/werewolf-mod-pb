@@ -2,9 +2,10 @@ import React, { useState, useContext } from "react";
 import { useNavigate } from "react-router";
 import { UserContext } from "../../components/UserContext";
 import FacebookIcon from "../../../img/Icons/facebook.png";
-import { TextField, IconButton, FormControlLabel, Checkbox, Button, InputAdornment } from "@mui/material";
+import { TextField, IconButton, FormControlLabel, Checkbox, Button, InputAdornment, Typography, Link } from "@mui/material";
 import { Visibility, VisibilityOff } from "@mui/icons-material";
 import pb from "../../pocketbase";
+
 const Login = () => {
   //Declare variables
   const navigate = useNavigate();
@@ -12,23 +13,22 @@ const Login = () => {
   const [password, setPassword] = useState("zzxxccvv,.");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const {user, setUser} = useContext(UserContext);
+  const {login} = useContext(UserContext);
 
   //Handle login
   const handleLogin = async (event) => {
     event.preventDefault();
     setLoading(true);
    
-    const authData = await pb.collection('users').authWithPassword(email, password);
-
-    if (authData.status === 400) {
-      alert(authData.message || "Login failed");
+    const authData = await login(email, password);
+    
+    if (authData.error) {
+      navigate("/auth/otp", { state: { email, mfaId: authData.mfaId } });
+      setLoading(false);
+      return;
     } else {
-      alert("Logged in");
-      setUser(authData);
       navigate("/setup");
     }
-    setLoading(false);
   };
 
   const handleGoogleSignIn = async () => {
@@ -45,12 +45,12 @@ const Login = () => {
         width={320}
         height="auto"
           src="https://img.freepik.com/premium-vector/silhouette-wolf-howling-full-moon-vector-illustration-pagan-totem-wiccan-familiar-spirit-art_726692-254.jpg"
-          className="object-fit mx-auto"
+          className="object-fit mx-auto rounded-full mb-4"
       />
-      <h2 className="text-center text-4xl font-semibold uppercase tracking-wide">
+      <Typography variant="h4" className="text-center text-4xl font-semibold uppercase tracking-wide">
         Login
-      </h2>
-      <form onSubmit={(e) => handleLogin(e)}>
+      </Typography>
+      <form onSubmit={handleLogin}>
         <div className="flex justify-center my-6">
           <TextField
             type="email"
@@ -62,31 +62,6 @@ const Login = () => {
             variant="outlined"
             sx={{
               width: '40%',
-              '& .MuiInputBase-root': {
-                color: 'white',
-                fontSize: '1.1rem',
-                backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                backdropFilter: 'blur(10px)',
-                borderRadius: '10px',
-                '& fieldset': {
-                  borderColor: 'rgba(255, 255, 255, 0.3)',
-                  borderWidth: '2px',
-                  transition: 'all 0.3s ease',
-                },
-                '&:hover fieldset': {
-                  borderColor: 'rgba(255, 255, 255, 0.5)',
-                },
-                '&.Mui-focused fieldset': {
-                  borderColor: 'white',
-                },
-              },
-              '& .MuiInputLabel-root': {
-                color: 'rgba(255, 255, 255, 0.7)',
-                fontSize: '1.1rem',
-                '&.Mui-focused': {
-                  color: 'white',
-                },
-              },
               '& .MuiOutlinedInput-input': {
                 padding: '1rem',
               },
@@ -114,7 +89,6 @@ const Login = () => {
                   <IconButton
                     onClick={() => setShowPassword(!showPassword)}
                     edge="end"
-                    sx={{ color: 'white' }}
                   >
                     {showPassword ? <VisibilityOff /> : <Visibility />}
                   </IconButton>
@@ -130,11 +104,6 @@ const Login = () => {
             disabled={loading}
             sx={{
               width: '40%',
-              backgroundColor: 'white',
-              color: 'black',
-              '&:hover': {
-                backgroundColor: '#e0e0e0',
-              },
               fontWeight: 600,
               fontSize: '1.25rem',
               textTransform: 'uppercase',
@@ -147,9 +116,9 @@ const Login = () => {
         </div>
       </form>
       <div className="flex justify-center flex-col gap-y-2 mt-4">
-        <p className="text-white opacity-60 text-ms font-medium tracking-wider text-center">
+        <Typography variant="body1" className="opacity-60 text-ms font-medium tracking-wider text-center">
           Or continue with
-        </p>
+        </Typography>
         <div className="flex flex-row items-center justify-center gap-x-4">
           <Button
             variant="contained"
@@ -216,25 +185,21 @@ const Login = () => {
           </Button>
         </div>
         <div className="flex flex-row items-center justify-center gap-x-2 mt-2">
-          <p className="text-white opacity-60 text-ms font-medium tracking-wider text-center">
+          <Typography variant="body1" className="opacity-60 text-ms font-medium tracking-wider text-center">
             Don't have an account?
-          </p>
-          <div>
-            <Button
-              component="a"
-              href="/auth/signup"
-              sx={{
-                color: 'white',
-                textTransform: 'none',
-                fontSize: '1rem',
-                '&:hover': {
-                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                },
-              }}
-            >
-              Sign Up
-            </Button>
-          </div>
+          </Typography>
+          <Link
+            component="button"
+            variant="body1"
+            onClick={() => navigate("/auth/signup")}
+            sx={{ 
+              cursor: 'pointer',
+              textDecoration: 'underline',
+              fontWeight: 'bold'
+            }}
+          >
+            Sign Up
+          </Link>
         </div>
       </div>
     </>

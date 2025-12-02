@@ -36,17 +36,37 @@ export default function useLobbies(lobbyId = null) {
   }, [lobbyId]);
   // Join an existing lobby
   async function joinLobby(lobbyId, user) {
+    if (!user || !user.id) {
+      throw new Error('User must be authenticated to join a lobby');
+    }
+
+    // Check if user is already in the lobby
+    try {
+      const existing = await pb.collection('lobby_players').getFullList({
+        filter: `lobby = "${lobbyId}" && player = "${user.id}"`
+      });
+      if (existing && existing.length > 0) {
+        console.log('User already in lobby, returning existing record');
+        return existing[0];
+      }
+    } catch (err) {
+      console.warn('Could not check for existing player record:', err);
+    }
+
     const ipPrefix = await getLanPrefix();
     const ipAddress = await getLanIpAddress();
     
     const data = {
       lobby: lobbyId,
       player: user.id,
+      role: '',
       connected: true,
       alive: true,
       ip_prefix: ipPrefix,
       ip_address: ipAddress
     }
+
+    console.log('Attempting to join lobby with data:', data);
 
     try {
       const createdPlayer = await pb.collection('lobby_players').create(data);
@@ -56,6 +76,7 @@ export default function useLobbies(lobbyId = null) {
       return createdPlayer;
     } catch (error) {
       console.error('Error joining lobby:', error);
+      console.error('Error details:', error.response || error.data || error);
       throw error;
     }
   }
