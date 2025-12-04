@@ -153,9 +153,7 @@ export default function LobbyDetails() {
       
       await pb.collection('lobby_players').create({
         lobby: lobbyId,
-        player: user.id, // Use moderator as placeholder or handle guest creation
-        player_name: manualName.trim(), // Manual name field
-        connected: true,
+        player: manualName,   gue: true,
         alive: true,
         ip_prefix: ipPrefix,
         ip_address: null
