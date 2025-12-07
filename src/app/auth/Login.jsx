@@ -4,6 +4,7 @@ import { UserContext } from "../../components/UserContext";
 import FacebookIcon from "../../../img/Icons/facebook.png";
 import { TextField, IconButton, FormControlLabel, Checkbox, Button, InputAdornment, Typography, Link } from "@mui/material";
 import { Visibility, VisibilityOff } from "@mui/icons-material";
+import { nanoid } from "nanoid";
 import pb from "../../pocketbase";
 
 const Login = () => {
@@ -23,7 +24,7 @@ const Login = () => {
     const authData = await login(email, password);
     
     if (authData.error) {
-      navigate("/auth/otp", { state: { email, mfaId: authData.mfaId } });
+      navigate("/auth/otp", { state: { email, mfaId: authData.mfaId, otpId: authData.otpId } });
       setLoading(false);
       return;
     } else {

@@ -49,14 +49,14 @@ export const UserProvider = ({ children }) => {
         email,
         password,
         passwordConfirm: password,
-        username,
+        name: username,
         full_name,
         emailVisibility: false,
       };
 
       const record = await pb.collection('users').create(data);
       
-      return { record, user: authData.record };
+      return { record };
     } catch (error) {
       console.error('Registration error:', error);
       throw error;
@@ -70,14 +70,6 @@ export const UserProvider = ({ children }) => {
     console.log("Attempting login for", email);
     try {
       const authData = await pb.collection('users').authWithPassword(email, password);
-      // Use authData.record instead of user (which is still null)
-      const url = authData.record.avatar 
-        ? `${pb.baseUrl}/api/files/${authData.record.collectionId}/${authData.record.id}/${authData.record.avatar}`
-        : null;
-      
-      setUser(authData.record);
-      setToken(authData.token);
-      setAvatar(url);
       return { authData };
     } catch (error) {
       const mfaId =  error.response?.mfaId;
@@ -87,7 +79,31 @@ export const UserProvider = ({ children }) => {
       }
       const result = await pb.collection('users').requestOTP(email);
       console.log('OTP requested:', result);
-      return { error, mfaId };
+      return { error, mfaId: mfaId, otpId: result.otpId };
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const verifyOTP = useCallback(async (mfaId, otpId, code) => {
+    setLoading(true);
+    try {
+      const authData = await pb.collection('users').authWithOTP(otpId, code, {'mfaId': mfaId});
+      const url = authData.record.avatar 
+        ? `${pb.baseUrl}/api/files/${authData.record.collectionId}/${authData.record.id}/${authData.record.avatar}`
+        : null;
+      
+      setUser(authData.record);
+      setToken(authData.token);
+      setAvatar(url);
+
+      console.log('OTP Verification successful:', authData);
+      setTimeout(() => {
+        navigate("/setup");
+      }, 1000);
+    } catch (error) {
+      console.error('OTP Verification error:', error);
+      return { error };
     } finally {
       setLoading(false);
     }
@@ -113,7 +129,7 @@ export const UserProvider = ({ children }) => {
 
 
   return (
-    <UserContext.Provider value={{user, setUser, login, register, logout, avatar, loading, setLoading}}>
+    <UserContext.Provider value={{user, setUser, login, register, logout, verifyOTP, avatar, loading, setLoading}}>
       {children}
     </UserContext.Provider>
   );

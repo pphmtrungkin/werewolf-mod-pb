@@ -7,31 +7,51 @@ import pb from "../../pocketbase";
 const OTP = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const email = location.state?.email || "";
+  const initialOtpId = location.state?.otpId || null;
+  const initialMfaId = location.state?.mfaId || null;
+  const email = location.state?.email || null;
   
   const [verificationCode, setVerificationCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
+  const [otpId, setOtpId] = useState(initialOtpId);
+  const { verifyOTP } = useContext(UserContext);
 
   const handleVerify = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
 
+    if (!otpId) {
+      setError('Verification session expired. Please request a new code.');
+      setLoading(false);
+      return;
+    }
+
+    console.log('Verifying OTP with otpId:', otpId, 'and code:', verificationCode);
+
     try {
-      // Verify the email with the code
-      await pb.collection('users').confirmVerification(verificationCode);
-      
+      const result = await verifyOTP(initialMfaId, otpId, verificationCode);
+      if (result?.error) {
+        setError('Invalid verification code. Please try again.');
+        setLoading(false);
+        return;
+      }
       setSuccess(true);
-      
-      // Redirect to login after 2 seconds
       setTimeout(() => {
-        navigate("/login");
-      }, 2000);
+        navigate("/setup");
+      }, 1500);
     } catch (error) {
       console.error('Verification error:', error);
-      setError(error.response?.message || error.message || 'Invalid verification code. Please try again.');
+      const status = error?.response?.status;
+      if (status === 401) {
+        setError('Unauthorized verification. Session may be expired. Request a new code.');
+      } else if (status === 400) {
+        setError('Invalid or expired verification code. Request a new code.');
+      } else {
+        setError(error?.response?.message || error?.message || 'Verification failed. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -47,7 +67,15 @@ const OTP = () => {
     setError(null);
 
     try {
-      await pb.collection('users').requestOTP(email);
+      const result = await pb.collection('users').requestOTP(email);
+      console.log('requestOTP result:', result); // Log to inspect response shape
+      // PocketBase returns { otpId: string }
+      if (result?.otpId) {
+        setOtpId(result.otpId);
+      } else {
+        setError('Failed to obtain new verification session. Try again.');
+        return;
+      }
       alert('Verification code has been resent to your email!');
     } catch (error) {
       console.error('Resend error:', error);

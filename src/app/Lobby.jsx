@@ -1,9 +1,9 @@
-import { useState, useEffect, useContext } from 'react';
-import { useParams } from 'react-router';
-import useLobbies from '../hooks/useLobbies';
-import UserContext from '../components/UserContext';
-import { useNavigate } from 'react-router';
-import pb from '../pocketbase.js';
+import { useState, useEffect, useContext } from "react";
+import { useParams } from "react-router";
+import useLobbies from "../hooks/useLobbies";
+import UserContext from "../components/UserContext";
+import { useNavigate } from "react-router";
+import pb from "../pocketbase.js";
 import {
   Box,
   Paper,
@@ -23,15 +23,16 @@ import {
   Chip,
   CircularProgress,
   Alert,
-  Divider
-} from '@mui/material';
-import PersonIcon from '@mui/icons-material/Person';
-import PersonAddIcon from '@mui/icons-material/PersonAdd';
-import DeleteIcon from '@mui/icons-material/Delete';
-import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+  Divider,
+} from "@mui/material";
+import PersonIcon from "@mui/icons-material/Person";
+import PersonAddIcon from "@mui/icons-material/PersonAdd";
+import DeleteIcon from "@mui/icons-material/Delete";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 
 // When the user closes the tab or navigates away we should remove them from the lobby_players
-import useJoinedPlayers from '../hooks/useJoinedPlayers';
+import useJoinedPlayers from "../hooks/useJoinedPlayers";
 
 export default function LobbyDetails() {
   const { lobbyId } = useParams();
@@ -42,136 +43,151 @@ export default function LobbyDetails() {
   const [players, setPlayers] = useState([]);
   const [subError, setSubError] = useState(null);
   const [addOpen, setAddOpen] = useState(false);
-  const [manualName, setManualName] = useState('');
+  const [manualName, setManualName] = useState("");
   const [copySuccess, setCopySuccess] = useState(false);
-  const [addError, setAddError] = useState('');
+  const [addError, setAddError] = useState("");
+  const [isModerator, setIsModerator] = useState(false);
+
+  // track if game has started from lobby.status
+  const [gameStarted, setGameStarted] = useState(false);
+  const [startAlertOpen, setStartAlertOpen] = useState(false);
 
   useEffect(() => {
-    // register unload / visibility handlers
-    const handleBeforeUnload = (e) => {
-      // best-effort: try to call leaveLobby (async, fire-and-forget)
-      try { leaveLobby(lobbyId, user); } catch (_) {}
-    };
+    if (lobby && user) {
+      setIsModerator(lobby.moderator === user.id);
 
-    const handleVisibility = () => {
-      if (document.hidden) {
-        try { leaveLobby(lobbyId, user); } catch (_) {}
+      if (lobby.status === "in_progress") {
+        setGameStarted(true);
+      }
+    }
+  }, [lobby, user]);
+
+  useEffect(() => {
+    const handleUnload = () => {
+      console.log("Is the user moderator: " + isModerator);
+      if (isModerator) {
+        // Moderator closes the tab, delete the lobby
+        try {
+          pb.collection("lobbies").delete(lobbyId);
+        } catch (err) {
+          console.error("Failed to delete lobby on moderator unload:", err);
+        }
+      } else {
+        // Player closes the tab, leave the lobby
+        try {
+          leaveLobby(lobbyId, user);
+        } catch (err) {
+          console.error("Failed to leave lobby on unload:", err);
+        }
       }
     };
 
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    window.addEventListener('pagehide', handleBeforeUnload);
-    document.addEventListener('visibilitychange', handleVisibility);
+    window.addEventListener("pagehide", handleUnload); // 'pagehide' is more reliable than 'unload'
 
     return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-      window.removeEventListener('pagehide', handleBeforeUnload);
-      document.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener("pagehide", handleUnload);
     };
-  }, [leaveLobby, lobbyId, user]);
+  }, [lobbyId, user, isModerator, leaveLobby]);
 
   // realtime subscription to lobby_players
   useEffect(() => {
     if (!lobbyId) return;
     let mounted = true;
 
+    // Load initial list of joined players
     const loadInitial = async () => {
       try {
-        const items = await pb.collection('lobby_players').getFullList({
+        const items = await pb.collection("lobby_players").getFullList({
           filter: `lobby = "${lobbyId}"`,
-          expand: 'player',
-          sort: 'created'
+          sort: "created",
         });
         if (mounted) setPlayers(items || []);
       } catch (err) {
-        console.error('Failed to load players:', err);
-        if (mounted) setSubError(err.message || 'Failed to load players');
-      }
-    };
-
-    const subscribe = async () => {
-      try {
-        await pb.collection('lobby_players').subscribe('*', async (e) => {
-          // Only consider events for this lobby
-          const rec = e?.record;
-          if (!rec || rec.lobby !== lobbyId) return;
-
-          if (e.action === 'create') {
-            // Fetch with expanded player data
-            try {
-              const fullRecord = await pb.collection('lobby_players').getOne(rec.id, { expand: 'player' });
-              if (mounted) {
-                setPlayers((prev) => {
-                  // Avoid duplicates
-                  if (prev.some(p => p.id === fullRecord.id)) return prev;
-                  return [...prev, fullRecord];
-                });
-              }
-            } catch (err) {
-              console.error('Error fetching new player:', err);
-            }
-          } else if (e.action === 'update') {
-            try {
-              const fullRecord = await pb.collection('lobby_players').getOne(rec.id, { expand: 'player' });
-              if (mounted) {
-                setPlayers((prev) => prev.map((p) => (p.id === fullRecord.id ? fullRecord : p)));
-              }
-            } catch (err) {
-              console.error('Error fetching updated player:', err);
-            }
-          } else if (e.action === 'delete') {
-            if (mounted) {
-              setPlayers((prev) => prev.filter((p) => p.id !== rec.id));
-            }
-          }
-        }, { expand: 'player' });
-      } catch (err) {
-        console.error('Realtime subscription failed:', err);
-        if (mounted) setSubError(err.message || 'Realtime subscription failed');
+        console.error("Failed to load players:", err);
+        if (mounted) setSubError(err.message || "Failed to load players");
       }
     };
 
     loadInitial();
-    subscribe();
 
+    // Subscribe to changes in any record in the collection.
+    // ListRule on the collection should already scope what we see;
+    // we still filter by lobbyId on the client.
+    pb.collection("lobby_players")
+      .subscribe("*", (e) => {
+        if (!mounted) return;
+        const rec = e?.record;
+        if (!rec || rec.lobby !== lobbyId) return;
+
+        if (e.action === "create") {
+          setPlayers((prev) => {
+            // Avoid duplicates
+            if (prev.some((p) => p.id === rec.id)) return prev;
+            return [...prev, rec];
+          });
+        } else if (e.action === "update") {
+          setPlayers((prev) => prev.map((p) => (p.id === rec.id ? rec : p)));
+        } else if (e.action === "delete") {
+          setPlayers((prev) => prev.filter((p) => p.id !== rec.id));
+        }
+      })
+      .catch((err) => {
+        console.error("Realtime subscription failed:", err);
+        if (mounted) setSubError(err.message || "Realtime subscription failed");
+      });
+
+    // unsubscribe
     return () => {
       mounted = false;
-      try { pb.collection('lobby_players').unsubscribe('*'); } catch (_) {}
+      try {
+        pb.collection("lobby_players").unsubscribe("*");
+      } catch (_) {}
     };
   }, [lobbyId]);
 
-  const isModerator = lobby && user && lobby.moderator === user.id;
+  useEffect(() => {
+    if (!gameStarted) return;
+
+    if (!isModerator) {
+      const timeout = setTimeout(() => {
+        navigate(`/game/${lobbyId}`);
+      }, 4000);
+
+      return () => clearTimeout(timeout);
+    }
+  }, [gameStarted, isModerator, lobbyId, navigate]);
 
   const handleAddManualPlayer = async () => {
     if (!manualName.trim()) {
-      setAddError('Player name is required');
+      setAddError("Player name is required");
       return;
     }
     try {
-      setAddError('');
-      const ipPrefix = localStorage.getItem('lanPrefix') || '192.168.1.';
-      
-      await pb.collection('lobby_players').create({
+      setAddError("");
+      const ipPrefix = localStorage.getItem("lanPrefix") || "192.168.1.";
+
+      await pb.collection("lobby_players").create({
         lobby: lobbyId,
-        player: manualName,   gue: true,
+        player: manualName,
+        connected: true,
         alive: true,
         ip_prefix: ipPrefix,
-        ip_address: null
+        ip_address: null,
       });
-      setManualName('');
+      setManualName("");
       setAddOpen(false);
     } catch (err) {
-      console.error('Failed to add player:', err);
-      setAddError(err.message || 'Failed to add player');
+      console.error("Failed to add player:", err);
+      setAddError(err.message || "Failed to add player");
     }
   };
 
   const handleRemovePlayer = async (playerId) => {
     if (!isModerator) return;
     try {
-      await pb.collection('lobby_players').delete(playerId);
+      await pb.collection("lobby_players").delete(playerId);
     } catch (err) {
-      console.error('Error removing player:', err);
+      console.error("Error removing player:", err);
     }
   };
 
@@ -183,9 +199,63 @@ export default function LobbyDetails() {
     }
   };
 
+  // Moderator starts the game: update lobby status so all clients see it
+  const handleStartGame = async () => {
+    if (!isModerator) return;
+
+    try {
+      await pb.collection("lobbies").update(lobbyId, {
+        status: "in_progress",
+      });
+
+      // Moderator navigates immediately
+      navigate(`/game/${lobbyId}`);
+    } catch (err) {
+      console.error("Failed to start game:", err);
+    }
+  };
+
+  // Subscribe to the lobby record itself to react to status/phase changes
+  useEffect(() => {
+    if (!lobbyId) return;
+    let mounted = true;
+
+    const subscribeLobby = async () => {
+      try {
+        await pb.collection("lobbies").subscribe(lobbyId, (e) => {
+          if (!mounted) return;
+          const rec = e?.record;
+          if (!rec) return;
+
+          // When status flips to in_progress, trigger flag and alert for everyone
+          if (rec.status === "in_progress") {
+            setGameStarted(true);
+            setStartAlertOpen(true);
+          }
+        });
+      } catch (err) {
+        console.error("Failed to subscribe to lobby:", err);
+      }
+    };
+
+    subscribeLobby();
+
+    return () => {
+      mounted = false;
+      try {
+        pb.collection("lobbies").unsubscribe(lobbyId);
+      } catch (_) {}
+    };
+  }, [lobbyId]);
+
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="50vh">
+      <Box
+        display="flex"
+        justifyContent="center"
+        alignItems="center"
+        minHeight="50vh"
+      >
         <CircularProgress />
       </Box>
     );
@@ -201,28 +271,44 @@ export default function LobbyDetails() {
 
   return (
     <Box className="mx-auto max-w-4xl my-10" sx={{ px: 2 }}>
+      {/* Game start alert banner */}
+      {gameStarted && startAlertOpen && (
+        <Box mb={2}>
+          <Alert severity="info" onClose={() => setStartAlertOpen(false)}>
+            The moderator has started the game! Redirecting...
+          </Alert>
+        </Box>
+      )}
+
       {/* Lobby Info Section */}
       <Paper elevation={3} sx={{ p: 4, mb: 3 }}>
-        <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+        <Box
+          display="flex"
+          justifyContent="space-between"
+          alignItems="center"
+          mb={2}
+        >
           <Typography variant="h4" component="h1">
-            {lobby.name || 'Game Lobby'}
+            {lobby.name || "Game Lobby"}
           </Typography>
-          {isModerator && (
-            <Chip label="Moderator" color="primary" />
-          )}
+          {isModerator && <Chip label="Moderator" color="primary" />}
         </Box>
 
         <Divider sx={{ my: 2 }} />
 
         <Box mb={2}>
           <Box display="flex" alignItems="center" gap={1} mb={1}>
-            <Typography variant="body1" fontWeight="bold">Lobby Code:</Typography>
+            <Typography variant="body1" fontWeight="bold">
+              Lobby Code:
+            </Typography>
             <Chip label={lobby.code} variant="outlined" size="medium" />
             <IconButton size="small" onClick={handleCopyCode} title="Copy code">
               <ContentCopyIcon fontSize="small" />
             </IconButton>
             {copySuccess && (
-              <Typography variant="caption" color="success.main">Copied!</Typography>
+              <Typography variant="caption" color="success.main">
+                Copied!
+              </Typography>
             )}
           </Box>
           <Typography variant="body2" color="text.secondary">
@@ -231,8 +317,22 @@ export default function LobbyDetails() {
         </Box>
 
         <Typography variant="body1" paragraph>
-          Please wait for other players to join. You can start the game once all players are present.
+          Please wait for other players to join. You can start the game once all
+          players are present.
         </Typography>
+
+        {isModerator && (
+          <Box sx={{ mt: 2, display: "flex", justifyContent: "flex-end" }}>
+            <Button
+              variant="contained"
+              color="primary"
+              startIcon={<PlayArrowIcon />}
+              onClick={handleStartGame}
+            >
+              Start Game
+            </Button>
+          </Box>
+        )}
 
         {lobby.expand?.deck && (
           <Box sx={{ mt: 2 }}>
@@ -240,7 +340,8 @@ export default function LobbyDetails() {
               <strong>Deck:</strong> {lobby.expand.deck.name}
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              <strong>Players needed:</strong> {lobby.expand.deck.number_of_players}
+              <strong>Players needed:</strong>{" "}
+              {lobby.expand.deck.number_of_players}
             </Typography>
           </Box>
         )}
@@ -248,9 +349,18 @@ export default function LobbyDetails() {
 
       {/* Players Section */}
       <Paper elevation={3} sx={{ p: 3 }}>
-        <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+        <Box
+          display="flex"
+          justifyContent="space-between"
+          alignItems="center"
+          mb={2}
+        >
           <Typography variant="h5" component="h2">
-            Players ({players.length}{lobby.expand?.deck?.number_of_players ? `/${lobby.expand.deck.number_of_players}` : ''})
+            Players ({players.length}
+            {lobby.expand?.deck?.number_of_players
+              ? `/${lobby.expand.deck.number_of_players}`
+              : ""}
+            )
           </Typography>
           {isModerator && (
             <Button
@@ -264,7 +374,9 @@ export default function LobbyDetails() {
         </Box>
 
         {subError && (
-          <Alert severity="error" sx={{ mb: 2 }}>{subError}</Alert>
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {subError}
+          </Alert>
         )}
 
         {playersLoading ? (
@@ -280,9 +392,9 @@ export default function LobbyDetails() {
         ) : (
           <List>
             {players.map((p, index) => {
-              const displayName = p.player_name || p.expand?.player?.name || p.player || 'Unknown';
+              const displayName = p.player_name || p.player || "Unknown";
               const isManual = !!p.player_name;
-              
+
               return (
                 <ListItem
                   key={p.id}
@@ -301,23 +413,32 @@ export default function LobbyDetails() {
                   }
                 >
                   <ListItemAvatar>
-                    <Avatar sx={{ bgcolor: p.connected ? 'success.main' : 'grey.500' }}>
+                    <Avatar
+                      sx={{
+                        bgcolor: p.connected ? "success.main" : "grey.500",
+                      }}
+                    >
                       <PersonIcon />
                     </Avatar>
                   </ListItemAvatar>
                   <ListItemText
                     primary={displayName}
+                    slotProps={{ secondary: { component: "span" } }}
                     secondary={
-                      <Box component="span" display="flex" gap={1} alignItems="center" mt={0.5}>
+                      <span className="inline-flex gap-1 items-center mt-1">
                         <Chip
-                          label={p.connected ? 'Connected' : 'Disconnected'}
+                          label={p.connected ? "Connected" : "Disconnected"}
                           size="small"
-                          color={p.connected ? 'success' : 'default'}
+                          color={p.connected ? "success" : "default"}
                         />
                         {isManual && (
-                          <Chip label="Manual" size="small" variant="outlined" />
+                          <Chip
+                            label="Manual"
+                            size="small"
+                            variant="outlined"
+                          />
                         )}
-                      </Box>
+                      </span>
                     }
                   />
                 </ListItem>
@@ -332,8 +453,8 @@ export default function LobbyDetails() {
         open={addOpen}
         onClose={() => {
           setAddOpen(false);
-          setManualName('');
-          setAddError('');
+          setManualName("");
+          setAddError("");
         }}
         maxWidth="sm"
         fullWidth
@@ -350,7 +471,7 @@ export default function LobbyDetails() {
             value={manualName}
             onChange={(e) => {
               setManualName(e.target.value);
-              setAddError('');
+              setAddError("");
             }}
             error={!!addError}
             helperText={addError}
@@ -361,8 +482,8 @@ export default function LobbyDetails() {
           <Button
             onClick={() => {
               setAddOpen(false);
-              setManualName('');
-              setAddError('');
+              setManualName("");
+              setAddError("");
             }}
           >
             Cancel
