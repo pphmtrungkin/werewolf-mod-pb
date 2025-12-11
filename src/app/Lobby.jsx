@@ -33,6 +33,7 @@ import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 
 // When the user closes the tab or navigates away we should remove them from the lobby_players
 import useJoinedPlayers from "../hooks/useJoinedPlayers";
+import AlertDialog from "../components/AlertDialog";
 
 export default function LobbyDetails() {
   const { lobbyId } = useParams();
@@ -47,6 +48,7 @@ export default function LobbyDetails() {
   const [copySuccess, setCopySuccess] = useState(false);
   const [addError, setAddError] = useState("");
   const [isModerator, setIsModerator] = useState(false);
+  const [leaveDialogOpen, setLeaveDialogOpen] = useState(false);
 
   // track if game has started from lobby.status
   const [gameStarted, setGameStarted] = useState(false);
@@ -63,31 +65,28 @@ export default function LobbyDetails() {
   }, [lobby, user]);
 
   useEffect(() => {
-    const handleUnload = () => {
-      console.log("Is the user moderator: " + isModerator);
-      if (isModerator) {
-        // Moderator closes the tab, delete the lobby
-        try {
-          pb.collection("lobbies").delete(lobbyId);
-        } catch (err) {
-          console.error("Failed to delete lobby on moderator unload:", err);
-        }
-      } else {
-        // Player closes the tab, leave the lobby
-        try {
-          leaveLobby(lobbyId, user);
-        } catch (err) {
-          console.error("Failed to leave lobby on unload:", err);
-        }
-      }
-    };
+    if (!lobby || !user) return;
+    
+    const url = import.meta.env.VITE_POCKETBASE_URL + "/api/removePlayer";
 
-    window.addEventListener("pagehide", handleUnload); // 'pagehide' is more reliable than 'unload'
+    const isMod = lobby.moderator === user.id;
+
+    const handleUnload = () => {
+      const payload = JSON.stringify({
+        lobbyId: lobby.id,
+        playerName: playerName
+      })
+    }
+    
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    window.addEventListener("pagehide", handlePageHide);
 
     return () => {
-      window.removeEventListener("pagehide", handleUnload);
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      window.removeEventListener("pagehide", handlePageHide);
     };
-  }, [lobbyId, user, isModerator, leaveLobby]);
+  }, [lobby, lobbyId, user, leaveLobby]);
 
   // realtime subscription to lobby_players
   useEffect(() => {
@@ -196,6 +195,20 @@ export default function LobbyDetails() {
       navigator.clipboard.writeText(lobby.code);
       setCopySuccess(true);
       setTimeout(() => setCopySuccess(false), 2000);
+    }
+  };
+
+  const handleLeaveLobbyConfirm = async () => {
+    try {
+      if (isModerator) {
+        await pb.collection("lobbies").delete(lobbyId);
+      } else {
+        await leaveLobby(lobbyId, user);
+      }
+    } catch (err) {
+      console.error("Failed to leave lobby via dialog:", err);
+    } finally {
+      navigate("/");
     }
   };
 
@@ -316,10 +329,41 @@ export default function LobbyDetails() {
           </Typography>
         </Box>
 
-        <Typography variant="body1" paragraph>
+        <Typography variant="body1">
           Please wait for other players to join. You can start the game once all
           players are present.
         </Typography>
+
+        <Box
+          mt={2}
+          display="flex"
+          justifyContent="space-between"
+          alignItems="center"
+        >
+          {isModerator && (
+            <Box>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                display="block"
+              >
+                As moderator, you can end the lobby for everyone.
+              </Typography>
+            </Box>
+          )}
+          <AlertDialog
+            open={leaveDialogOpen}
+            setOpen={setLeaveDialogOpen}
+            openButtonTitle={isModerator ? "End Lobby & Leave" : "Leave Lobby"}
+            title={isModerator ? "End lobby and leave?" : "Leave lobby?"}
+            message={
+              isModerator
+                ? "You are the moderator. Ending the lobby will remove it and disconnect all players. Are you sure you want to continue?"
+                : "You will leave this lobby and be removed from the player list. Are you sure you want to continue?"
+            }
+            handleConfirm={handleLeaveLobbyConfirm}
+          />
+        </Box>
 
         {isModerator && (
           <Box sx={{ mt: 2, display: "flex", justifyContent: "flex-end" }}>

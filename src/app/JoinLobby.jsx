@@ -213,7 +213,21 @@ const JoinLobby = () => {
             onKeyDown={async (ev) => {
               if (ev.key === "Enter") {
                 ev.preventDefault();
-                await handleJoinLobby();
+                const response = await fetch(
+                  import.meta.env.VITE_POCKETBASE_URL + "/api/fetchLobby",
+                  {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                      name: `${user ? user.name : name}`,
+                      authCode: authCode,
+                    }),
+                  },
+                );
+
+                console.log(response);
               }
             }}
           />
@@ -223,7 +237,24 @@ const JoinLobby = () => {
             Cancel
           </Button>
           <Button
-            onClick={handleJoinLobby}
+            onClick={async (e) => {
+              e.preventDefault();
+              const response = await fetch(
+                import.meta.env.VITE_POCKETBASE_URL + "/api/joinLobby",
+                {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify({
+                    name: `${user ? user.name : name}`,
+                    authCode: authCode,
+                  }),
+                },
+              );
+
+              console.log(response);
+            }}
             variant="contained"
             disabled={isJoining}
           >
