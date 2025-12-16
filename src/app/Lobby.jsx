@@ -64,29 +64,26 @@ export default function LobbyDetails() {
     }
   }, [lobby, user]);
 
-  useEffect(() => {
-    if (!lobby || !user) return;
-    
-    const url = import.meta.env.VITE_POCKETBASE_URL + "/api/removePlayer";
+  // useEffect(() => {
+  //   if (!lobby || !user) return;
 
-    const isMod = lobby.moderator === user.id;
+  //   const url = import.meta.env.VITE_POCKETBASE_URL + "/api/removePlayer";
 
-    const handleUnload = () => {
-      const payload = JSON.stringify({
-        lobbyId: lobby.id,
-        playerName: playerName
-      })
-    }
-    
+  //   const isMod = lobby.moderator === user.id;
 
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    window.addEventListener("pagehide", handlePageHide);
+  //   const handleUnload = () => {
+  //     const payload = JSON.stringify({
+  //       lobbyId: lobby.id,
+  //       playerName: playerName,
+  //     });
+  //   };
 
-    return () => {
-      window.removeEventListener("beforeunload", handleBeforeUnload);
-      window.removeEventListener("pagehide", handlePageHide);
-    };
-  }, [lobby, lobbyId, user, leaveLobby]);
+  //   window.addEventListener("pagehide", handlePageHide);
+
+  //   return () => {
+  //     window.removeEventListener("pagehide", handlePageHide);
+  //   };
+  // }, [lobby, lobbyId, user, leaveLobby]);
 
   // realtime subscription to lobby_players
   useEffect(() => {

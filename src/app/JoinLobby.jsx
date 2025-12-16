@@ -6,7 +6,6 @@ import {
   List,
   ListItem,
   ListItemText,
-  ListItemSecondaryAction,
   Button,
   TextField,
   Paper,
@@ -25,7 +24,6 @@ const JoinLobby = () => {
   const { user } = useContext(UserContext);
   const { joinLobby } = useLobbies();
   const [localLobbies, setLocalLobbies] = useState([]);
-  const [code, setCode] = useState("");
   const [selectedLobby, setSelectedLobby] = useState(null);
   const [authCode, setAuthCode] = useState("");
   const [authError, setAuthError] = useState("");
@@ -35,16 +33,7 @@ const JoinLobby = () => {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
 
-  // Load lanPrefix from localStorage or fallback
-  const getLanPrefix = () => {
-    try {
-      const cached = localStorage.getItem("lanPrefix");
-      if (cached) return cached;
-    } catch (_) {}
-    return "192.168.1.";
-  };
-
-  const POLL_INTERVAL_MS = 5000; // poll every 10 seconds
+  const POLL_INTERVAL_MS = 5000; // poll every 5 seconds
 
   useEffect(() => {
     let mounted = true;
@@ -52,14 +41,12 @@ const JoinLobby = () => {
       // avoid overlapping fetches
       try {
         setLoading(true);
-        const lanPrefix = getLanPrefix();
         // Query pocketbase for lobbies on same ip_prefix
         const items = await pb.collection("lobbies").getFullList({
-          filter: `ip_prefix = "${lanPrefix}" && status = \"waiting\"`,
+          filter: `status = "waiting"`,
           expand: "moderator",
         });
         if (!mounted) return;
-        console.log("Fetched local lobbies", items);
         setLocalLobbies(items || []);
       } catch (err) {
         console.error("Error fetching local lobbies", err);
@@ -96,35 +83,25 @@ const JoinLobby = () => {
   const handleJoinLobby = async () => {
     if (!selectedLobby) return;
     if (!authCode) {
-      setAuthError("Please enter the lobby code");
-      return;
-    }
-    if (authCode !== (selectedLobby.code || "").toUpperCase()) {
-      setAuthError("Invalid code for this lobby");
+      setAuthError("Please enter the lobby code.");
       return;
     }
     if (!user && !name.trim()) {
-      setAuthError("Please enter a guest name");
+      setAuthError("Please enter a name to join as a guest.");
       return;
-    }
-
-    let username = "";
-    if (name) {
-      username = name;
-    } else {
-      username = user.name;
     }
 
     try {
       setIsJoining(true);
-      const authData = await joinLobby(selectedLobby.id, username);
-      if (!authData.error) {
-        navigate("/lobby/" + selectedLobby.id);
-      } else {
-        setAuthError(authData.error);
-      }
+      setAuthError("");
+
+      const finalUsername = user ? user.name : name;
+
+      await joinLobby(selectedLobby.id, authCode, finalUsername);
     } catch (error) {
-      setAuthError(error.message || "Failed to join lobby.");
+      const message =
+        error.data?.message || error.message || "Failed to join lobby.";
+      setAuthError(message);
     } finally {
       setIsJoining(false);
     }
@@ -171,7 +148,18 @@ const JoinLobby = () => {
           </List>
         )}
       </Paper>
-      <Dialog closeAfterTransition={false} open={open} onClose={handleClose}>
+      <Dialog
+        closeAfterTransition={false}
+        open={open}
+        onClose={handleClose}
+        PaperProps={{
+          component: "form",
+          onSubmit: (event) => {
+            event.preventDefault();
+            handleJoinLobby();
+          },
+        }}
+      >
         <DialogTitle>Enter lobby code to join</DialogTitle>
         <DialogContent>
           {!user && (
@@ -189,6 +177,7 @@ const JoinLobby = () => {
                   }}
                   inputProps={{ maxLength: 20 }}
                   sx={{ mt: 1 }}
+                  required
                 />
               </Box>
             </>
@@ -200,6 +189,7 @@ const JoinLobby = () => {
           </DialogContentText>
           <TextField
             autoFocus
+            margin="dense"
             label="Lobby Code"
             fullWidth
             value={authCode}
@@ -210,55 +200,13 @@ const JoinLobby = () => {
             error={!!authError}
             helperText={authError}
             inputProps={{ maxLength: 8 }}
-            onKeyDown={async (ev) => {
-              if (ev.key === "Enter") {
-                ev.preventDefault();
-                const response = await fetch(
-                  import.meta.env.VITE_POCKETBASE_URL + "/api/fetchLobby",
-                  {
-                    method: "POST",
-                    headers: {
-                      "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({
-                      name: `${user ? user.name : name}`,
-                      authCode: authCode,
-                    }),
-                  },
-                );
-
-                console.log(response);
-              }
-            }}
+            required
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleClose} color="primary">
-            Cancel
-          </Button>
-          <Button
-            onClick={async (e) => {
-              e.preventDefault();
-              const response = await fetch(
-                import.meta.env.VITE_POCKETBASE_URL + "/api/joinLobby",
-                {
-                  method: "POST",
-                  headers: {
-                    "Content-Type": "application/json",
-                  },
-                  body: JSON.stringify({
-                    name: `${user ? user.name : name}`,
-                    authCode: authCode,
-                  }),
-                },
-              );
-
-              console.log(response);
-            }}
-            variant="contained"
-            disabled={isJoining}
-          >
-            Join
+          <Button onClick={handleClose}>Cancel</Button>
+          <Button type="submit" variant="contained" disabled={isJoining}>
+            {isJoining ? "Joining..." : "Join"}
           </Button>
         </DialogActions>
       </Dialog>
