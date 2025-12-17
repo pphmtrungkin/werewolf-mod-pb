@@ -53,7 +53,6 @@ export default function useLobbies(lobbyId = null) {
         } catch (_) {}
       }
 
-      console.log("Joined lobby successfully:", result);
       return result.record;
     } catch (error) {
       console.error("Error joining lobby:", error);
