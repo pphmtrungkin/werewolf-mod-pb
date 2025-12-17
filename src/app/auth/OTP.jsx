@@ -29,8 +29,6 @@ const OTP = () => {
       return;
     }
 
-    console.log('Verifying OTP with otpId:', otpId, 'and code:', verificationCode);
-
     try {
       const result = await verifyOTP(initialMfaId, otpId, verificationCode);
       if (result?.error) {
