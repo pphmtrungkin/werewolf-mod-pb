@@ -111,7 +111,6 @@ const AccountSetting = ({ user }) => {
     let file = e.target.files[0];
     setImageFile(file);
     setFileUrl(URL.createObjectURL(file));
-    console.log(file);
   };
 
   const uploadPicture = async (e) => {
