@@ -109,41 +109,46 @@ const AccountSetting = ({ user }) => {
     console.log(file);
   };
 
-  const updateProfileUrl = async (filePath) => {
-    console.log(filePath);
-  };
-  const uploadImageUrlToProfile = async (Url) => {
-    console.log(Url);
-    if (error && updateError) {
-      console.error("Error updating user profile: ", error);
-    } else {
-      setAvatarUrl(Url);
-    }
-  };
   const uploadPicture = async (e) => {
     e.preventDefault();
-    const filename = `${user.id}/profile`;
-    setImgPath(filename);
-    if (data) {
-      console.log(data.path);
-      updateProfileUrl(data.path);
+    if (!imageFile) {
+      alert("Please select an image first");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const formDataUpload = new FormData();
+      formDataUpload.append("avatar", imageFile);
+
+      const userId = pb.authStore.model.id;
+      await pb.collection("users").update(userId, formDataUpload);
+
+      setAvatarUrl(URL.createObjectURL(imageFile));
+      setImageFile(null);
       handleClose();
-    } else {
-      console.log(error.message);
+      alert("Picture uploaded successfully");
+    } catch (error) {
+      console.error("Error uploading picture: ", error);
+      alert("Error uploading picture");
+    } finally {
+      setLoading(false);
     }
   };
 
   const deleteAvatar = async () => {
-    const imgPath = `${user.id}/profile`;
-    console.log(imgPath);
-    if (error) {
-      console.error("Error deleting image: ", error);
-    } else {
-      console.log("Image deleted successfully", removeData);
+    setLoading(true);
+    try {
+      const userId = pb.authStore.model.id;
+      await pb.collection("users").update(userId, { avatar: null });
+
       setAvatarUrl("");
-      if (error && updateError) {
-        console.error("Error updating user profile: ", error);
-      }
+      alert("Avatar deleted successfully");
+    } catch (error) {
+      console.error("Error deleting avatar: ", error);
+      alert("Error deleting avatar");
+    } finally {
+      setLoading(false);
     }
   };
 
