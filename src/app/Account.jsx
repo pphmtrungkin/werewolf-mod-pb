@@ -64,18 +64,22 @@ const AccountSetting = ({ user }) => {
     }
   };
 
-   useEffect(() => {
+  useEffect(() => {
     async function getProfile() {
-      const userId = pb.authStore.model.id;
-      const record = await pb.collection("users").getOne(userId);
-      setFormData({
-        fullName: record.full_name || "",
-        username: record.name || "",
-        email: record.email || "",
-        phoneNumber: record.phone || "",
-      });
+      try {
+        const userId = pb.authStore.model.id;
+        const record = await pbService.getUserProfile(userId);
+        setFormData({
+          fullName: record.full_name || "",
+          username: record.name || "",
+          email: record.email || "",
+          phoneNumber: record.phone || "",
+        });
+      } catch (error) {
+        console.error("Error fetching profile:", error);
+      }
     }
-    
+
     getProfile();
   }, []);
 
