@@ -115,7 +115,7 @@ export const UserProvider = ({ children }) => {
       const expirationWithBuffer = tokenExpirationInSeconds - fiveMinutesInSeconds;
 
       if (currentTimeInSeconds > expirationWithBuffer) {
-        await pb.collection('users').authRefresh();
+        await pbService.refreshAuthToken();
       }
     } catch (error) {
       console.error('Token refresh error:', error);
