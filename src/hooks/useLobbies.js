@@ -17,9 +17,7 @@ export default function useLobbies(lobbyId = null) {
     setLoading(true);
     setError(null);
     try {
-      const lobbyDetails = await pb
-        .collection("lobbies")
-        .getOne(lobbyId, { expand: "deck" });
+      const lobbyDetails = await pbService.getLobbyById(lobbyId, { expand: "deck" });
       setLobby(lobbyDetails);
       return lobbyDetails;
     } catch (error) {
