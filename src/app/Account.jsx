@@ -127,7 +127,7 @@ const AccountSetting = ({ user }) => {
       formDataUpload.append("avatar", imageFile);
 
       const userId = pb.authStore.model.id;
-      await pb.collection("users").update(userId, formDataUpload);
+      await pbService.updateUserProfile(userId, formDataUpload);
 
       setAvatarUrl(URL.createObjectURL(imageFile));
       setImageFile(null);
@@ -145,7 +145,7 @@ const AccountSetting = ({ user }) => {
     setLoading(true);
     try {
       const userId = pb.authStore.model.id;
-      await pb.collection("users").update(userId, { avatar: null });
+      await pbService.updateUserProfile(userId, { avatar: null });
 
       setAvatarUrl("");
       alert("Avatar deleted successfully");
