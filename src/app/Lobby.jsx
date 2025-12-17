@@ -93,10 +93,7 @@ export default function LobbyDetails() {
     // Load initial list of joined players
     const loadInitial = async () => {
       try {
-        const items = await pb.collection("lobby_players").getFullList({
-          filter: `lobby = "${lobbyId}"`,
-          sort: "created",
-        });
+        const items = await pbService.getLobbyPlayers(lobbyId, { sort: 'created' });
         if (mounted) setPlayers(items || []);
       } catch (err) {
         console.error("Failed to load players:", err);
@@ -109,34 +106,32 @@ export default function LobbyDetails() {
     // Subscribe to changes in any record in the collection.
     // ListRule on the collection should already scope what we see;
     // we still filter by lobbyId on the client.
-    pb.collection("lobby_players")
-      .subscribe("*", (e) => {
-        if (!mounted) return;
-        const rec = e?.record;
-        if (!rec || rec.lobby !== lobbyId) return;
+    pbService.subscribeLobbyPlayers((e) => {
+      if (!mounted) return;
+      const rec = e?.record;
+      if (!rec || rec.lobby !== lobbyId) return;
 
-        if (e.action === "create") {
-          setPlayers((prev) => {
-            // Avoid duplicates
-            if (prev.some((p) => p.id === rec.id)) return prev;
-            return [...prev, rec];
-          });
-        } else if (e.action === "update") {
-          setPlayers((prev) => prev.map((p) => (p.id === rec.id ? rec : p)));
-        } else if (e.action === "delete") {
-          setPlayers((prev) => prev.filter((p) => p.id !== rec.id));
-        }
-      })
-      .catch((err) => {
-        console.error("Realtime subscription failed:", err);
-        if (mounted) setSubError(err.message || "Realtime subscription failed");
-      });
+      if (e.action === "create") {
+        setPlayers((prev) => {
+          // Avoid duplicates
+          if (prev.some((p) => p.id === rec.id)) return prev;
+          return [...prev, rec];
+        });
+      } else if (e.action === "update") {
+        setPlayers((prev) => prev.map((p) => (p.id === rec.id ? rec : p)));
+      } else if (e.action === "delete") {
+        setPlayers((prev) => prev.filter((p) => p.id !== rec.id));
+      }
+    }).catch((err) => {
+      console.error("Realtime subscription failed:", err);
+      if (mounted) setSubError(err.message || "Realtime subscription failed");
+    });
 
     // unsubscribe
     return () => {
       mounted = false;
       try {
-        pb.collection("lobby_players").unsubscribe("*");
+        pbService.unsubscribeLobbyPlayers();
       } catch (_) {}
     };
   }, [lobbyId]);
@@ -162,7 +157,7 @@ export default function LobbyDetails() {
       setAddError("");
       const ipPrefix = localStorage.getItem("lanPrefix") || "192.168.1.";
 
-      await pb.collection("lobby_players").create({
+      await pbService.createLobbyPlayer({
         lobby: lobbyId,
         player: manualName,
         connected: true,
@@ -181,7 +176,7 @@ export default function LobbyDetails() {
   const handleRemovePlayer = async (playerId) => {
     if (!isModerator) return;
     try {
-      await pb.collection("lobby_players").delete(playerId);
+      await pbService.deleteLobbyPlayer(playerId);
     } catch (err) {
       console.error("Error removing player:", err);
     }
@@ -198,7 +193,7 @@ export default function LobbyDetails() {
   const handleLeaveLobbyConfirm = async () => {
     try {
       if (isModerator) {
-        await pb.collection("lobbies").delete(lobbyId);
+        await pbService.deleteLobby(lobbyId);
       } else {
         await leaveLobby(lobbyId, user);
       }
@@ -214,7 +209,7 @@ export default function LobbyDetails() {
     if (!isModerator) return;
 
     try {
-      await pb.collection("lobbies").update(lobbyId, {
+      await pbService.updateLobby(lobbyId, {
         status: "in_progress",
       });
 
@@ -232,7 +227,7 @@ export default function LobbyDetails() {
 
     const subscribeLobby = async () => {
       try {
-        await pb.collection("lobbies").subscribe(lobbyId, (e) => {
+        await pbService.subscribeLobby(lobbyId, (e) => {
           if (!mounted) return;
           const rec = e?.record;
           if (!rec) return;
@@ -253,7 +248,7 @@ export default function LobbyDetails() {
     return () => {
       mounted = false;
       try {
-        pb.collection("lobbies").unsubscribe(lobbyId);
+        pbService.unsubscribeLobby(lobbyId);
       } catch (_) {}
     };
   }, [lobbyId]);
