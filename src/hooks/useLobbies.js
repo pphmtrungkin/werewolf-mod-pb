@@ -108,7 +108,7 @@ export default function useLobbies(lobbyId = null) {
     const roomCodeLength = 6;
     const roomCode = generateRoomCode(roomCodeLength);
 
-    const record = await pb.collection("lobbies").create({
+    const record = await pbService.createLobby({
       name: hostUser.name + "'s Lobby",
       code: roomCode,
       status: "waiting",
