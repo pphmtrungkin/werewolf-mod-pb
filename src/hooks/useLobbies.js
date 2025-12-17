@@ -82,7 +82,7 @@ export default function useLobbies(lobbyId = null) {
       })();
       if (storedId) {
         try {
-          await pb.collection("lobby_players").delete(storedId);
+          await pbService.deleteLobbyPlayer(storedId);
           try {
             localStorage.removeItem("lobby_player_id");
           } catch (_) {}
