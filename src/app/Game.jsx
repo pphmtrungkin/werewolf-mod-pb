@@ -14,7 +14,7 @@ import {
   Divider,
 } from "@mui/material";
 import UserContext from "../components/UserContext";
-import pb from "../pocketbase";
+import pbService from "../services/pbService";
 
 export default function Game() {
   const { lobbyId } = useParams();
@@ -29,14 +29,12 @@ export default function Game() {
     const fetchGameData = async () => {
       try {
         setLoading(true);
-        const lobbyData = await pb.collection("lobbies").getOne(lobbyId, {
+        const lobbyData = await pbService.getLobbyById(lobbyId, {
           expand: "deck",
         });
         setLobby(lobbyData);
 
-        const playersData = await pb.collection("lobby_players").getFullList({
-          filter: `lobby = "${lobbyId}"`,
-        });
+        const playersData = await pbService.getLobbyPlayers(lobbyId);
         setPlayers(playersData);
       } catch (err) {
         setError("Failed to load game data. Please try again.");
@@ -56,7 +54,7 @@ export default function Game() {
 
     const subscribeLobby = async () => {
       try {
-        await pb.collection("lobbies").subscribe(lobbyId, (e) => {
+        await pbService.subscribeLobby(lobbyId, (e) => {
           if (!mounted) return;
           const rec = e?.record;
           if (!rec) return;
@@ -74,7 +72,7 @@ export default function Game() {
     return () => {
       mounted = false;
       try {
-        pb.collection("lobbies").unsubscribe(lobbyId);
+        pbService.unsubscribeLobby(lobbyId);
       } catch (_) {}
     };
   }, [lobbyId]);
@@ -86,7 +84,6 @@ export default function Game() {
   const handleConfirmAction = () => {
     if (!selectedPlayer) return;
     // TODO: Implement action logic based on the user's role
-    console.log(`Action confirmed for player: ${selectedPlayer.player}`);
     setSelectedPlayer(null);
   };
 

@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState, useContext } from "react";
 import { Outlet } from "react-router";
 import { useNavigate } from "react-router";
 import pb from "../pocketbase";
+import pbService from "../services/pbService";
 import { UserContext } from "../components/UserContext";
 import { Switch, Tooltip, FormControlLabel } from "@mui/material";
 import { Typography, Box, Tabs, Tab } from "@mui/material";
@@ -63,32 +64,43 @@ const AccountSetting = ({ user }) => {
     }
   };
 
-   useEffect(() => {
+  useEffect(() => {
     async function getProfile() {
-      const userId = pb.authStore.model.id;
-      const record = await pb.collection("users").getOne(userId);
-      setFormData({
-        fullName: record.full_name || "",
-        username: record.name || "",
-        email: record.email || "",
-        phoneNumber: record.phone || "",
-      });
+      try {
+        const userId = pb.authStore.model.id;
+        const record = await pbService.getUserProfile(userId);
+        setFormData({
+          fullName: record.full_name || "",
+          username: record.name || "",
+          email: record.email || "",
+          phoneNumber: record.phone || "",
+        });
+      } catch (error) {
+        console.error("Error fetching profile:", error);
+      }
     }
-    
+
     getProfile();
   }, []);
 
   const updateProfile = async (e) => {
     e.preventDefault();
     setLoading(true);
-    const record = await pb.collection("users").update('RECORD_ID', formData);
-    if (record.status) {
-      console.error("Error updating profile: ", record.status, record.message);
-      alert("Error updating profile");
-    } else {
+    try {
+      const userId = pb.authStore.model.id;
+      const updateData = {
+        full_name: formData.fullName,
+        name: formData.username,
+        phone: formData.phoneNumber,
+      };
+      await pbService.updateUserProfile(userId, updateData);
       alert("Profile updated successfully");
+    } catch (error) {
+      console.error("Error updating profile: ", error);
+      alert("Error updating profile");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleClose = () => {
@@ -99,44 +111,48 @@ const AccountSetting = ({ user }) => {
     let file = e.target.files[0];
     setImageFile(file);
     setFileUrl(URL.createObjectURL(file));
-    console.log(file);
   };
 
-  const updateProfileUrl = async (filePath) => {
-    console.log(filePath);
-  };
-  const uploadImageUrlToProfile = async (Url) => {
-    console.log(Url);
-    if (error && updateError) {
-      console.error("Error updating user profile: ", error);
-    } else {
-      setAvatarUrl(Url);
-    }
-  };
   const uploadPicture = async (e) => {
     e.preventDefault();
-    const filename = `${user.id}/profile`;
-    setImgPath(filename);
-    if (data) {
-      console.log(data.path);
-      updateProfileUrl(data.path);
+    if (!imageFile) {
+      alert("Please select an image first");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const formDataUpload = new FormData();
+      formDataUpload.append("avatar", imageFile);
+
+      const userId = pb.authStore.model.id;
+      await pbService.updateUserProfile(userId, formDataUpload);
+
+      setAvatarUrl(URL.createObjectURL(imageFile));
+      setImageFile(null);
       handleClose();
-    } else {
-      console.log(error.message);
+      alert("Picture uploaded successfully");
+    } catch (error) {
+      console.error("Error uploading picture: ", error);
+      alert("Error uploading picture");
+    } finally {
+      setLoading(false);
     }
   };
 
   const deleteAvatar = async () => {
-    const imgPath = `${user.id}/profile`;
-    console.log(imgPath);
-    if (error) {
-      console.error("Error deleting image: ", error);
-    } else {
-      console.log("Image deleted successfully", removeData);
+    setLoading(true);
+    try {
+      const userId = pb.authStore.model.id;
+      await pbService.updateUserProfile(userId, { avatar: null });
+
       setAvatarUrl("");
-      if (error && updateError) {
-        console.error("Error updating user profile: ", error);
-      }
+      alert("Avatar deleted successfully");
+    } catch (error) {
+      console.error("Error deleting avatar: ", error);
+      alert("Error deleting avatar");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -183,7 +199,6 @@ const AccountSetting = ({ user }) => {
                 type="button"
                 title="Sign out"
                 onClick={() => {
-                  console.log("Sign out button clicked");
                   async function signOut() {
                     await pb.authStore.clear();
                     navigate("/");
@@ -361,12 +376,12 @@ const AccountSetting = ({ user }) => {
               />
               <label htmlFor="phoneNumber">Phone Number</label>
               <input
-                type="phone"
+                type="tel"
                 name="phoneNumber"
                 id="phoneNumber"
                 value={formData.phoneNumber ?? ""}
-                onChange={(e) => setPhoneNumber(e.target.value)}
-                  className={`py-3 border-b-2 w-full focus:outline-none focus:ring-0 focus:border-blue-500 mb-4 ${toggleDisable ? "cursor-not-allowed opacity-50" : ""}` }
+                onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
+                className={`py-3 border-b-2 w-full focus:outline-none focus:ring-0 focus:border-blue-500 mb-4 ${toggleDisable ? "cursor-not-allowed opacity-50" : ""}`}
               />
               <input
                 type="submit"
@@ -385,8 +400,7 @@ const sendEmailPasswordReset = async (e, email) => {
   e.preventDefault();
   const isChecked = e.target.confirm.checked;
   if (!isChecked) {
-    console.log("Please confirm to proceed");
-  } else {
+    alert("Please confirm to proceed");
   }
 };
 
@@ -426,9 +440,8 @@ const PasswordSetting = ({ user }) => {
   const handleResetPassword = async (e) => {
     e.preventDefault();
 
-    if (newPassword === confirmPassword) {
-    } else {
-      console.log("Passwords do not match");
+    if (newPassword !== confirmPassword) {
+      alert("Passwords do not match");
     }
   };
   return (

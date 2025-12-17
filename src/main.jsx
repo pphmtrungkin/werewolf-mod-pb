@@ -14,6 +14,8 @@ import Players from "./app/Players";
 import { UserProvider } from "./components/UserContext";
 import AuthLayout from "./app/auth/AuthLayout";
 import { ThemeProvider } from "./components/ThemeContext";
+import { ErrorProvider } from "./components/ErrorContext";
+import Toast from "./components/Toast";
 import Lobby from "./app/Lobby";
 import JoinLobby from "./app/JoinLobby";
 import OTP from "./app/auth/OTP";
@@ -100,10 +102,13 @@ const router = createBrowserRouter([
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
-    <UserProvider>
-      <ThemeProvider>
-        <RouterProvider router={router} />
-      </ThemeProvider>
-    </UserProvider>
+    <ErrorProvider>
+      <UserProvider>
+        <ThemeProvider>
+          <Toast />
+          <RouterProvider router={router} />
+        </ThemeProvider>
+      </UserProvider>
+    </ErrorProvider>
   </React.StrictMode>,
 );

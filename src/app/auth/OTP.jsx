@@ -1,8 +1,8 @@
 import { useState, useContext } from "react";
 import { useNavigate, useLocation } from "react-router";
 import { UserContext } from "../../components/UserContext";
+import pbService from "../../services/pbService";
 import { TextField, Button, Box, Typography, Alert } from "@mui/material";
-import pb from "../../pocketbase";
 
 const OTP = () => {
   const navigate = useNavigate();
@@ -29,8 +29,6 @@ const OTP = () => {
       return;
     }
 
-    console.log('Verifying OTP with otpId:', otpId, 'and code:', verificationCode);
-
     try {
       const result = await verifyOTP(initialMfaId, otpId, verificationCode);
       if (result?.error) {
@@ -39,9 +37,11 @@ const OTP = () => {
         return;
       }
       setSuccess(true);
-      setTimeout(() => {
-        navigate("/setup");
-      }, 1500);
+      if (result?.success) {
+        setTimeout(() => {
+          navigate("/setup");
+        }, 1500);
+      }
     } catch (error) {
       console.error('Verification error:', error);
       const status = error?.response?.status;
@@ -67,9 +67,7 @@ const OTP = () => {
     setError(null);
 
     try {
-      const result = await pb.collection('users').requestOTP(email);
-      console.log('requestOTP result:', result); // Log to inspect response shape
-      // PocketBase returns { otpId: string }
+      const result = await pbService.requestOTP(email);
       if (result?.otpId) {
         setOtpId(result.otpId);
       } else {

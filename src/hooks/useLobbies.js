@@ -1,4 +1,5 @@
-import pb from "../pocketbase.js"; // Adjust the import path as necessary
+import pb from "../pocketbase.js";
+import pbService from "../services/pbService";
 import { useEffect, useState, useContext } from "react";
 import UserContext from "../components/UserContext";
 import useDecks from "./useDecks";
@@ -16,9 +17,7 @@ export default function useLobbies(lobbyId = null) {
     setLoading(true);
     setError(null);
     try {
-      const lobbyDetails = await pb
-        .collection("lobbies")
-        .getOne(lobbyId, { expand: "deck" });
+      const lobbyDetails = await pbService.getLobbyById(lobbyId, { expand: "deck" });
       setLobby(lobbyDetails);
       return lobbyDetails;
     } catch (error) {
@@ -32,14 +31,11 @@ export default function useLobbies(lobbyId = null) {
   // Fetch lobby details on mount or when lobbyId changes
   useEffect(() => {
     if (lobbyId) {
-      console.log("Fetching lobby with ID:", lobbyId);
       fetchLobby(lobbyId);
     }
   }, [lobbyId]);
   // Join an existing lobby
   async function joinLobby(lobbyId, authCode, username) {
-    console.log("lobbyId: ", lobbyId);
-    console.log(`Attempting to join lobby ${authCode} as ${username}`);
     try {
       const result = await pb.send("/api/joinLobby", {
         method: "POST",
@@ -57,11 +53,9 @@ export default function useLobbies(lobbyId = null) {
         } catch (_) {}
       }
 
-      console.log("Joined lobby successfully:", result);
       return result.record;
     } catch (error) {
       console.error("Error joining lobby:", error);
-      console.error("Error details:", error.response || error.data || error);
       throw error;
     }
   }
@@ -83,7 +77,7 @@ export default function useLobbies(lobbyId = null) {
       })();
       if (storedId) {
         try {
-          await pb.collection("lobby_players").delete(storedId);
+          await pbService.deleteLobbyPlayer(storedId);
           try {
             localStorage.removeItem("lobby_player_id");
           } catch (_) {}
@@ -109,7 +103,7 @@ export default function useLobbies(lobbyId = null) {
     const roomCodeLength = 6;
     const roomCode = generateRoomCode(roomCodeLength);
 
-    const record = await pb.collection("lobbies").create({
+    const record = await pbService.createLobby({
       name: hostUser.name + "'s Lobby",
       code: roomCode,
       status: "waiting",

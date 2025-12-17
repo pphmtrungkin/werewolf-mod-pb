@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import UserContext from './UserContext';
-import pb from '../pocketbase'
+import pbService from '../services/pbService';
+
 // Create a context
 export const DeckContext = createContext();
 
@@ -18,16 +19,14 @@ export const DeckProvider = ({ children }) => {
   useEffect(() => {
     async function fetchUserDeck() {
       if (user && user.id) {
-        const resultList = await pb.collection('decks').getFullList(1, { filter: `owner = "${user.id}"` });
-        if (resultList.status === 400) {
-          console.error('Error fetching decks:', resultList);
-          return;
-        } else {
-          console.log('Fetched decks:', resultList.items);
-          setDecks(resultList.items);
-          if (resultList.items.length > 0) {
-            setDeckId(resultList.items[0].id);
+        try {
+          const decks = await pbService.getDeck(user.id);
+          setDecks(decks || []);
+          if (decks && decks.length > 0) {
+            setDeckId(decks[0].id);
           }
+        } catch (error) {
+          console.error('Error fetching decks:', error);
         }
       }
     }
@@ -35,13 +34,12 @@ export const DeckProvider = ({ children }) => {
     async function fetchSelectedCards() {
       if (deckId) {
         setSelectedCardsLoading(true);
-        const resultList = await pb.collection('decks_cards').getFullList(1, { filter: `deck = "${deckId}"` });
-        if (resultList.status === 400) {
-          console.error('Error fetching selected cards:', resultList);
-          setSelectedCardsLoading(false);
-          return;
-        } else {
-          setSelectedCards(resultList.items);
+        try {
+          const cards = await pbService.getSelectedCards(deckId);
+          setSelectedCards(cards || []);
+        } catch (error) {
+          console.error('Error fetching selected cards:', error);
+        } finally {
           setSelectedCardsLoading(false);
         }
       }
@@ -49,7 +47,7 @@ export const DeckProvider = ({ children }) => {
 
     fetchUserDeck();
     fetchSelectedCards();
-  }, [user]);
+  }, [user, deckId]);
   return (
     <DeckContext.Provider value={{ selectedCards, setSelectedCards, selectedCardsLoading, numberOfPlayers, setNumberOfPlayers, total, setTotal, timer, setTimer }}>
       {children}
@@ -57,4 +55,3 @@ export const DeckProvider = ({ children }) => {
   );
 };
 export default DeckContext;
-

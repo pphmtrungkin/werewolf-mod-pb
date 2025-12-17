@@ -1,11 +1,9 @@
-import { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
-import { TrendingUpSharp } from '@mui/icons-material';
-import { useNavigate } from 'react-router';
-import PocketBase from 'pocketbase';
-import {jwtDecode} from "jwt-decode";
-import { useInterval } from "usehooks-ts";
+import { createContext, useEffect, useState, useCallback } from 'react';
+import {jwtDecode} from 'jwt-decode';
+import { useInterval } from 'usehooks-ts';
 import ms from 'ms';
 import pb from '../pocketbase';
+import pbService from '../services/pbService';
 
 const fiveMinutesInMs = ms("5 minutes");
 const twoMinutesInMs = ms("2 minutes");
@@ -25,11 +23,10 @@ export const UserProvider = ({ children }) => {
 
 
   useEffect(() => {
-    return pb.authStore.onChange((token, model) => {
+    return pb.authStore.onChange(() => {
       setToken(pb.authStore.token);
       setUser(pb.authStore.model);
     });
-    console.log("Auth store changed", token, user);
   }, []);
 
   useEffect(() => {
@@ -44,7 +41,6 @@ export const UserProvider = ({ children }) => {
   const register = useCallback(async (email, password, username, full_name) => {
     setLoading(true);
     try {
-      // Create the user account first
       const data = {
         email,
         password,
@@ -54,8 +50,7 @@ export const UserProvider = ({ children }) => {
         emailVisibility: false,
       };
 
-      const record = await pb.collection('users').create(data);
-      
+      const record = await pbService.registerUser(data);
       return { record };
     } catch (error) {
       console.error('Registration error:', error);
@@ -67,18 +62,15 @@ export const UserProvider = ({ children }) => {
 
   const login = useCallback(async (email, password) => {
     setLoading(true);
-    console.log("Attempting login for", email);
     try {
-      const authData = await pb.collection('users').authWithPassword(email, password);
+      const authData = await pbService.loginUser(email, password);
       return { authData };
     } catch (error) {
-      const mfaId =  error.response?.mfaId;
-      console.log('MFA ID:', mfaId);
+      const mfaId = error.response?.mfaId;
       if (!mfaId) {
         console.error('Login error:', error);
       }
-      const result = await pb.collection('users').requestOTP(email);
-      console.log('OTP requested:', result);
+      const result = await pbService.requestOTP(email);
       return { error, mfaId: mfaId, otpId: result.otpId };
     } finally {
       setLoading(false);
@@ -88,19 +80,16 @@ export const UserProvider = ({ children }) => {
   const verifyOTP = useCallback(async (mfaId, otpId, code) => {
     setLoading(true);
     try {
-      const authData = await pb.collection('users').authWithOTP(otpId, code, {'mfaId': mfaId});
-      const url = authData.record.avatar 
-        ? `${pb.baseUrl}/api/files/${authData.record.collectionId}/${authData.record.id}/${authData.record.avatar}`
+      const authData = await pbService.authWithOTP(otpId, code, { mfaId });
+      const url = authData.record.avatar
+        ? pbService.getFileUrl(authData.record.collectionId, authData.record.id, authData.record.avatar)
         : null;
-      
+
       setUser(authData.record);
       setToken(authData.token);
       setAvatar(url);
 
-      console.log('OTP Verification successful:', authData);
-      setTimeout(() => {
-        navigate("/setup");
-      }, 1000);
+      return { success: true, record: authData.record, token: authData.token };
     } catch (error) {
       console.error('OTP Verification error:', error);
       return { error };
@@ -116,12 +105,19 @@ export const UserProvider = ({ children }) => {
   }, []);
 
   const refreshSession = useCallback(async () => {
-    if (!pb.authStore.isValid) return;
-    const decoded = jwtDecode(token);
-    const tokenExpiration = decoded.exp;
-    const expirationWithBuffer = (decoded.exp + fiveMinutesInMs) / 1000;
-    if (tokenExpiration < expirationWithBuffer) {
-      await pb.collection("users").authRefresh();
+    if (!pb.authStore.isValid || !token) return;
+    try {
+      const decoded = jwtDecode(token);
+      const tokenExpirationInSeconds = decoded.exp;
+      const currentTimeInSeconds = Math.floor(Date.now() / 1000);
+      const fiveMinutesInSeconds = fiveMinutesInMs / 1000;
+      const expirationWithBuffer = tokenExpirationInSeconds - fiveMinutesInSeconds;
+
+      if (currentTimeInSeconds > expirationWithBuffer) {
+        await pbService.refreshAuthToken();
+      }
+    } catch (error) {
+      console.error('Token refresh error:', error);
     }
   }, [token]);
 
@@ -135,4 +131,3 @@ export const UserProvider = ({ children }) => {
   );
 };
 export default UserContext;
-

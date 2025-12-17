@@ -33,12 +33,10 @@ const Login = () => {
   };
 
   const handleGoogleSignIn = async () => {
-    const { error } = supabase.auth.signInWithOAuth({
-      provider: "google",
-    });
-    if (error) {
-      console.log(error.message);
-    }
+    // TODO: Implement Google OAuth with PocketBase
+    // PocketBase does not have built-in OAuth for Google yet
+    // Consider using PocketBase custom auth endpoint or alternative provider
+    alert("Google sign-in not yet implemented");
   };
   return (
     <>
@@ -137,15 +135,10 @@ const Login = () => {
               transition: 'all 0.3s ease',
             }}
             onClick={() => {
-              async function signInWithFacebook() {
-                const { data, error } = await supabase.auth.signInWithOAuth({
-                  provider: "facebook",
-                });
-                if (error) {
-                  console.log(error.message);
-                }
-              }
-              signInWithFacebook();
+              // TODO: Implement Facebook OAuth with PocketBase
+              // PocketBase does not have built-in OAuth for Facebook yet
+              // Consider using PocketBase custom auth endpoint or alternative provider
+              alert("Facebook sign-in not yet implemented");
             }}
           >
             <svg
