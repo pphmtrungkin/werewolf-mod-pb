@@ -138,7 +138,7 @@ const Login = () => {
               // TODO: Implement Facebook OAuth with PocketBase
               // PocketBase does not have built-in OAuth for Facebook yet
               // Consider using PocketBase custom auth endpoint or alternative provider
-              console.log("Facebook sign-in not yet implemented");
+              alert("Facebook sign-in not yet implemented");
             }}
           >
             <svg
