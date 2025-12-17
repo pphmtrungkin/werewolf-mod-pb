@@ -54,7 +54,7 @@ export default function Game() {
 
     const subscribeLobby = async () => {
       try {
-        await pb.collection("lobbies").subscribe(lobbyId, (e) => {
+        await pbService.subscribeLobby(lobbyId, (e) => {
           if (!mounted) return;
           const rec = e?.record;
           if (!rec) return;
@@ -72,7 +72,7 @@ export default function Game() {
     return () => {
       mounted = false;
       try {
-        pb.collection("lobbies").unsubscribe(lobbyId);
+        pbService.unsubscribeLobby(lobbyId);
       } catch (_) {}
     };
   }, [lobbyId]);
