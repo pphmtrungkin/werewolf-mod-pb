@@ -23,11 +23,10 @@ export const UserProvider = ({ children }) => {
 
 
   useEffect(() => {
-    return pb.authStore.onChange((token, model) => {
+    return pb.authStore.onChange(() => {
       setToken(pb.authStore.token);
       setUser(pb.authStore.model);
     });
-    console.log("Auth store changed", token, user);
   }, []);
 
   useEffect(() => {
@@ -72,7 +71,7 @@ export const UserProvider = ({ children }) => {
         console.error('Login error:', error);
       }
       const result = await pbService.requestOTP(email);
-      return { error, mfaId, otpId: result.otpId };
+      return { error, mfaId: mfaId, otpId: result.otpId };
     } finally {
       setLoading(false);
     }
