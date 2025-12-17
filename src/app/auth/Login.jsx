@@ -135,15 +135,10 @@ const Login = () => {
               transition: 'all 0.3s ease',
             }}
             onClick={() => {
-              async function signInWithFacebook() {
-                const { data, error } = await supabase.auth.signInWithOAuth({
-                  provider: "facebook",
-                });
-                if (error) {
-                  console.log(error.message);
-                }
-              }
-              signInWithFacebook();
+              // TODO: Implement Facebook OAuth with PocketBase
+              // PocketBase does not have built-in OAuth for Facebook yet
+              // Consider using PocketBase custom auth endpoint or alternative provider
+              console.log("Facebook sign-in not yet implemented");
             }}
           >
             <svg
