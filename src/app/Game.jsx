@@ -14,7 +14,7 @@ import {
   Divider,
 } from "@mui/material";
 import UserContext from "../components/UserContext";
-import pb from "../pocketbase";
+import pbService from "../services/pbService";
 
 export default function Game() {
   const { lobbyId } = useParams();
