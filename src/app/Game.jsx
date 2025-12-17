@@ -29,14 +29,12 @@ export default function Game() {
     const fetchGameData = async () => {
       try {
         setLoading(true);
-        const lobbyData = await pb.collection("lobbies").getOne(lobbyId, {
+        const lobbyData = await pbService.getLobbyById(lobbyId, {
           expand: "deck",
         });
         setLobby(lobbyData);
 
-        const playersData = await pb.collection("lobby_players").getFullList({
-          filter: `lobby = "${lobbyId}"`,
-        });
+        const playersData = await pbService.getLobbyPlayers(lobbyId);
         setPlayers(playersData);
       } catch (err) {
         setError("Failed to load game data. Please try again.");
