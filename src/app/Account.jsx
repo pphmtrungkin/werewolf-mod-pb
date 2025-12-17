@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState, useContext } from "react";
 import { Outlet } from "react-router";
 import { useNavigate } from "react-router";
 import pb from "../pocketbase";
+import pbService from "../services/pbService";
 import { UserContext } from "../components/UserContext";
 import { Switch, Tooltip, FormControlLabel } from "@mui/material";
 import { Typography, Box, Tabs, Tab } from "@mui/material";
