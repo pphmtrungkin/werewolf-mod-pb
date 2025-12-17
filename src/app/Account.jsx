@@ -440,9 +440,8 @@ const PasswordSetting = ({ user }) => {
   const handleResetPassword = async (e) => {
     e.preventDefault();
 
-    if (newPassword === confirmPassword) {
-    } else {
-      console.log("Passwords do not match");
+    if (newPassword !== confirmPassword) {
+      alert("Passwords do not match");
     }
   };
   return (
