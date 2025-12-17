@@ -38,14 +38,9 @@ const JoinLobby = () => {
   useEffect(() => {
     let mounted = true;
     const fetchLocalLobbies = async () => {
-      // avoid overlapping fetches
       try {
         setLoading(true);
-        // Query pocketbase for lobbies on same ip_prefix
-        const items = await pb.collection("lobbies").getFullList({
-          filter: `status = "waiting"`,
-          expand: "moderator",
-        });
+        const items = await pbService.getWaitingLobbies();
         if (!mounted) return;
         setLocalLobbies(items || []);
       } catch (err) {
