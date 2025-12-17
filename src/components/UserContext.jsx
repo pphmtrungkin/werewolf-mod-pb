@@ -81,9 +81,9 @@ export const UserProvider = ({ children }) => {
   const verifyOTP = useCallback(async (mfaId, otpId, code) => {
     setLoading(true);
     try {
-      const authData = await pb.collection('users').authWithOTP(otpId, code, {'mfaId': mfaId});
+      const authData = await pbService.authWithOTP(otpId, code, { mfaId });
       const url = authData.record.avatar
-        ? `${pb.baseUrl}/api/files/${authData.record.collectionId}/${authData.record.id}/${authData.record.avatar}`
+        ? pbService.getFileUrl(authData.record.collectionId, authData.record.id, authData.record.avatar)
         : null;
 
       setUser(authData.record);
