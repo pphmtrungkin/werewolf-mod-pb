@@ -1,5 +1,5 @@
 import { createContext, useEffect, useState, useCallback } from 'react';
-import jwtDecode from 'jwt-decode';
+import {jwtDecode} from 'jwt-decode';
 import { useInterval } from 'usehooks-ts';
 import ms from 'ms';
 import pb from '../pocketbase';
