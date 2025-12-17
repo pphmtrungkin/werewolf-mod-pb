@@ -3,7 +3,7 @@ import { useParams } from "react-router";
 import useLobbies from "../hooks/useLobbies";
 import UserContext from "../components/UserContext";
 import { useNavigate } from "react-router";
-import pb from "../pocketbase.js";
+import pbService from "../services/pbService";
 import {
   Box,
   Paper,
