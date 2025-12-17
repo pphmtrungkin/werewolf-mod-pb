@@ -1,9 +1,6 @@
-import { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
-import { TrendingUpSharp } from '@mui/icons-material';
-import { useNavigate } from 'react-router';
-import PocketBase from 'pocketbase';
-import {jwtDecode} from "jwt-decode";
-import { useInterval } from "usehooks-ts";
+import { createContext, useEffect, useState, useCallback } from 'react';
+import jwtDecode from 'jwt-decode';
+import { useInterval } from 'usehooks-ts';
 import ms from 'ms';
 import pb from '../pocketbase';
 
@@ -89,18 +86,15 @@ export const UserProvider = ({ children }) => {
     setLoading(true);
     try {
       const authData = await pb.collection('users').authWithOTP(otpId, code, {'mfaId': mfaId});
-      const url = authData.record.avatar 
+      const url = authData.record.avatar
         ? `${pb.baseUrl}/api/files/${authData.record.collectionId}/${authData.record.id}/${authData.record.avatar}`
         : null;
-      
+
       setUser(authData.record);
       setToken(authData.token);
       setAvatar(url);
 
-      console.log('OTP Verification successful:', authData);
-      setTimeout(() => {
-        navigate("/setup");
-      }, 1000);
+      return { success: true, record: authData.record, token: authData.token };
     } catch (error) {
       console.error('OTP Verification error:', error);
       return { error };
@@ -116,12 +110,19 @@ export const UserProvider = ({ children }) => {
   }, []);
 
   const refreshSession = useCallback(async () => {
-    if (!pb.authStore.isValid) return;
-    const decoded = jwtDecode(token);
-    const tokenExpiration = decoded.exp;
-    const expirationWithBuffer = (decoded.exp + fiveMinutesInMs) / 1000;
-    if (tokenExpiration < expirationWithBuffer) {
-      await pb.collection("users").authRefresh();
+    if (!pb.authStore.isValid || !token) return;
+    try {
+      const decoded = jwtDecode(token);
+      const tokenExpirationInSeconds = decoded.exp;
+      const currentTimeInSeconds = Math.floor(Date.now() / 1000);
+      const fiveMinutesInSeconds = fiveMinutesInMs / 1000;
+      const expirationWithBuffer = tokenExpirationInSeconds - fiveMinutesInSeconds;
+
+      if (currentTimeInSeconds > expirationWithBuffer) {
+        await pb.collection('users').authRefresh();
+      }
+    } catch (error) {
+      console.error('Token refresh error:', error);
     }
   }, [token]);
 
@@ -135,4 +136,3 @@ export const UserProvider = ({ children }) => {
   );
 };
 export default UserContext;
-
