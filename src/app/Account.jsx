@@ -81,14 +81,21 @@ const AccountSetting = ({ user }) => {
   const updateProfile = async (e) => {
     e.preventDefault();
     setLoading(true);
-    const record = await pb.collection("users").update('RECORD_ID', formData);
-    if (record.status) {
-      console.error("Error updating profile: ", record.status, record.message);
-      alert("Error updating profile");
-    } else {
+    try {
+      const userId = pb.authStore.model.id;
+      const updateData = {
+        full_name: formData.fullName,
+        name: formData.username,
+        phone: formData.phoneNumber,
+      };
+      await pb.collection("users").update(userId, updateData);
       alert("Profile updated successfully");
+    } catch (error) {
+      console.error("Error updating profile: ", error);
+      alert("Error updating profile");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleClose = () => {
