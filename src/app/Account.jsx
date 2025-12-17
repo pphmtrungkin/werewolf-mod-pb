@@ -373,12 +373,12 @@ const AccountSetting = ({ user }) => {
               />
               <label htmlFor="phoneNumber">Phone Number</label>
               <input
-                type="phone"
+                type="tel"
                 name="phoneNumber"
                 id="phoneNumber"
                 value={formData.phoneNumber ?? ""}
-                onChange={(e) => setPhoneNumber(e.target.value)}
-                  className={`py-3 border-b-2 w-full focus:outline-none focus:ring-0 focus:border-blue-500 mb-4 ${toggleDisable ? "cursor-not-allowed opacity-50" : ""}` }
+                onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
+                className={`py-3 border-b-2 w-full focus:outline-none focus:ring-0 focus:border-blue-500 mb-4 ${toggleDisable ? "cursor-not-allowed opacity-50" : ""}`}
               />
               <input
                 type="submit"
