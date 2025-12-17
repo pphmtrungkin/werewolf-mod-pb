@@ -400,8 +400,7 @@ const sendEmailPasswordReset = async (e, email) => {
   e.preventDefault();
   const isChecked = e.target.confirm.checked;
   if (!isChecked) {
-    console.log("Please confirm to proceed");
-  } else {
+    alert("Please confirm to proceed");
   }
 };
 
