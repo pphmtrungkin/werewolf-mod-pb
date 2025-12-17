@@ -1,8 +1,8 @@
 import { useState, useContext } from "react";
 import { useNavigate, useLocation } from "react-router";
 import { UserContext } from "../../components/UserContext";
+import pbService from "../../services/pbService";
 import { TextField, Button, Box, Typography, Alert } from "@mui/material";
-import pb from "../../pocketbase";
 
 const OTP = () => {
   const navigate = useNavigate();
