@@ -36,8 +36,6 @@ export default function useLobbies(lobbyId = null) {
   }, [lobbyId]);
   // Join an existing lobby
   async function joinLobby(lobbyId, authCode, username) {
-    console.log("lobbyId: ", lobbyId);
-    console.log(`Attempting to join lobby ${authCode} as ${username}`);
     try {
       const result = await pb.send("/api/joinLobby", {
         method: "POST",
