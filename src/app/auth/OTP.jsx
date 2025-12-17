@@ -39,9 +39,11 @@ const OTP = () => {
         return;
       }
       setSuccess(true);
-      setTimeout(() => {
-        navigate("/setup");
-      }, 1500);
+      if (result?.success) {
+        setTimeout(() => {
+          navigate("/setup");
+        }, 1500);
+      }
     } catch (error) {
       console.error('Verification error:', error);
       const status = error?.response?.status;
