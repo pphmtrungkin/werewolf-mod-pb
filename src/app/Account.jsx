@@ -93,7 +93,7 @@ const AccountSetting = ({ user }) => {
         name: formData.username,
         phone: formData.phoneNumber,
       };
-      await pb.collection("users").update(userId, updateData);
+      await pbService.updateUserProfile(userId, updateData);
       alert("Profile updated successfully");
     } catch (error) {
       console.error("Error updating profile: ", error);
