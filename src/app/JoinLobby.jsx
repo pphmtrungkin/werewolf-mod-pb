@@ -1,5 +1,5 @@
 import { useState, useEffect, useContext } from "react";
-import pb from "../pocketbase";
+import pbService from "../services/pbService";
 import {
   Box,
   Typography,
