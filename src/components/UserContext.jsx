@@ -63,19 +63,16 @@ export const UserProvider = ({ children }) => {
 
   const login = useCallback(async (email, password) => {
     setLoading(true);
-    console.log("Attempting login for", email);
     try {
-      const authData = await pb.collection('users').authWithPassword(email, password);
+      const authData = await pbService.loginUser(email, password);
       return { authData };
     } catch (error) {
-      const mfaId =  error.response?.mfaId;
-      console.log('MFA ID:', mfaId);
+      const mfaId = error.response?.mfaId;
       if (!mfaId) {
         console.error('Login error:', error);
       }
-      const result = await pb.collection('users').requestOTP(email);
-      console.log('OTP requested:', result);
-      return { error, mfaId: mfaId, otpId: result.otpId };
+      const result = await pbService.requestOTP(email);
+      return { error, mfaId, otpId: result.otpId };
     } finally {
       setLoading(false);
     }
