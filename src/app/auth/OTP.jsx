@@ -69,9 +69,7 @@ const OTP = () => {
     setError(null);
 
     try {
-      const result = await pb.collection('users').requestOTP(email);
-      console.log('requestOTP result:', result); // Log to inspect response shape
-      // PocketBase returns { otpId: string }
+      const result = await pbService.requestOTP(email);
       if (result?.otpId) {
         setOtpId(result.otpId);
       } else {
