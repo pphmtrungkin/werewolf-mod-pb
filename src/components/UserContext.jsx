@@ -42,7 +42,6 @@ export const UserProvider = ({ children }) => {
   const register = useCallback(async (email, password, username, full_name) => {
     setLoading(true);
     try {
-      // Create the user account first
       const data = {
         email,
         password,
@@ -52,8 +51,7 @@ export const UserProvider = ({ children }) => {
         emailVisibility: false,
       };
 
-      const record = await pb.collection('users').create(data);
-      
+      const record = await pbService.registerUser(data);
       return { record };
     } catch (error) {
       console.error('Registration error:', error);
