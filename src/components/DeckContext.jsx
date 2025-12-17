@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import UserContext from './UserContext';
-import pb from '../pocketbase'
+import pbService from '../services/pbService';
+
 // Create a context
 export const DeckContext = createContext();
 
@@ -57,4 +58,3 @@ export const DeckProvider = ({ children }) => {
   );
 };
 export default DeckContext;
-
