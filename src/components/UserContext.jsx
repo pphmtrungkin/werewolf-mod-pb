@@ -3,6 +3,7 @@ import jwtDecode from 'jwt-decode';
 import { useInterval } from 'usehooks-ts';
 import ms from 'ms';
 import pb from '../pocketbase';
+import pbService from '../services/pbService';
 
 const fiveMinutesInMs = ms("5 minutes");
 const twoMinutesInMs = ms("2 minutes");
