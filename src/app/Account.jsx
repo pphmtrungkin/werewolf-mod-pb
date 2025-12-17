@@ -199,7 +199,6 @@ const AccountSetting = ({ user }) => {
                 type="button"
                 title="Sign out"
                 onClick={() => {
-                  console.log("Sign out button clicked");
                   async function signOut() {
                     await pb.authStore.clear();
                     navigate("/");
