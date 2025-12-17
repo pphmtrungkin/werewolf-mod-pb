@@ -56,7 +56,6 @@ export default function useLobbies(lobbyId = null) {
       return result.record;
     } catch (error) {
       console.error("Error joining lobby:", error);
-      console.error("Error details:", error.response || error.data || error);
       throw error;
     }
   }
