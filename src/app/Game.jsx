@@ -84,7 +84,6 @@ export default function Game() {
   const handleConfirmAction = () => {
     if (!selectedPlayer) return;
     // TODO: Implement action logic based on the user's role
-    console.log(`Action confirmed for player: ${selectedPlayer.player}`);
     setSelectedPlayer(null);
   };
 
