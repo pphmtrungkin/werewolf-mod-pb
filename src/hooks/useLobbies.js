@@ -31,7 +31,6 @@ export default function useLobbies(lobbyId = null) {
   // Fetch lobby details on mount or when lobbyId changes
   useEffect(() => {
     if (lobbyId) {
-      console.log("Fetching lobby with ID:", lobbyId);
       fetchLobby(lobbyId);
     }
   }, [lobbyId]);
