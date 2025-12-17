@@ -36,7 +36,7 @@ const Login = () => {
     // TODO: Implement Google OAuth with PocketBase
     // PocketBase does not have built-in OAuth for Google yet
     // Consider using PocketBase custom auth endpoint or alternative provider
-    console.log("Google sign-in not yet implemented");
+    alert("Google sign-in not yet implemented");
   };
   return (
     <>
