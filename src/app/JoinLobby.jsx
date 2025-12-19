@@ -89,13 +89,14 @@ const JoinLobby = () => {
     try {
       setIsJoining(true);
       setAuthError("");
-
+      if (user) {
+        console.log("User:", user);
+      }
       const finalUsername = user ? user.name : name;
 
       await joinLobby(selectedLobby.id, authCode, finalUsername);
     } catch (error) {
-      const message =
-        error.data?.message || error.message || "Failed to join lobby.";
+      const message = error.data?.message || error.message || "Failed to join lobby.";
       setAuthError(message);
     } finally {
       setIsJoining(false);
@@ -113,9 +114,7 @@ const JoinLobby = () => {
         {loading && localLobbies.length === 0 ? (
           <Box className="flex justify-center items-center" sx={{ my: 3 }}>
             <Spinner />
-            <Typography sx={{ ml: 2 }}>
-              Searching for local lobbies...
-            </Typography>
+            <Typography sx={{ ml: 2 }}>Searching for local lobbies...</Typography>
           </Box>
         ) : localLobbies.length === 0 ? (
           <Typography>No local lobbies found on your LAN.</Typography>
@@ -125,17 +124,9 @@ const JoinLobby = () => {
               <ListItem key={l.id} divider>
                 <ListItemText
                   primary={`${l.name}`}
-                  secondary={
-                    l.expand?.moderator?.name
-                      ? `Host: ${l.expand.moderator.name}`
-                      : ""
-                  }
+                  secondary={l.expand?.moderator?.name ? `Host: ${l.expand.moderator.name}` : ""}
                 />
-                <Button
-                  variant="outlined"
-                  onClick={() => handleClickOpen(l)}
-                  disabled={loading}
-                >
+                <Button variant="outlined" onClick={() => handleClickOpen(l)} disabled={loading}>
                   Select
                 </Button>
               </ListItem>
