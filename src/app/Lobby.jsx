@@ -54,6 +54,20 @@ export default function LobbyDetails() {
   const [gameStarted, setGameStarted] = useState(false);
   const [startAlertOpen, setStartAlertOpen] = useState(false);
 
+  // Set up heartbeat to detect browser close and auto-leave lobby
+  useHeartbeat(
+    lobbyId && user && !gameStarted,
+    async () => {
+      try {
+        await leaveLobby(lobbyId, user);
+      } catch (err) {
+        console.error("Heartbeat: failed to leave lobby on disconnect:", err);
+      }
+    },
+    5000,
+    2000,
+  );
+
   useEffect(() => {
     if (lobby && user) {
       setIsModerator(lobby.moderator === user.id);
@@ -93,7 +107,7 @@ export default function LobbyDetails() {
     // Load initial list of joined players
     const loadInitial = async () => {
       try {
-        const items = await pbService.getLobbyPlayers(lobbyId, { sort: 'created' });
+        const items = await pbService.getLobbyPlayers(lobbyId, { sort: "created" });
         if (mounted) setPlayers(items || []);
       } catch (err) {
         console.error("Failed to load players:", err);
@@ -106,26 +120,28 @@ export default function LobbyDetails() {
     // Subscribe to changes in any record in the collection.
     // ListRule on the collection should already scope what we see;
     // we still filter by lobbyId on the client.
-    pbService.subscribeLobbyPlayers((e) => {
-      if (!mounted) return;
-      const rec = e?.record;
-      if (!rec || rec.lobby !== lobbyId) return;
+    pbService
+      .subscribeLobbyPlayers((e) => {
+        if (!mounted) return;
+        const rec = e?.record;
+        if (!rec || rec.lobby !== lobbyId) return;
 
-      if (e.action === "create") {
-        setPlayers((prev) => {
-          // Avoid duplicates
-          if (prev.some((p) => p.id === rec.id)) return prev;
-          return [...prev, rec];
-        });
-      } else if (e.action === "update") {
-        setPlayers((prev) => prev.map((p) => (p.id === rec.id ? rec : p)));
-      } else if (e.action === "delete") {
-        setPlayers((prev) => prev.filter((p) => p.id !== rec.id));
-      }
-    }).catch((err) => {
-      console.error("Realtime subscription failed:", err);
-      if (mounted) setSubError(err.message || "Realtime subscription failed");
-    });
+        if (e.action === "create") {
+          setPlayers((prev) => {
+            // Avoid duplicates
+            if (prev.some((p) => p.id === rec.id)) return prev;
+            return [...prev, rec];
+          });
+        } else if (e.action === "update") {
+          setPlayers((prev) => prev.map((p) => (p.id === rec.id ? rec : p)));
+        } else if (e.action === "delete") {
+          setPlayers((prev) => prev.filter((p) => p.id !== rec.id));
+        }
+      })
+      .catch((err) => {
+        console.error("Realtime subscription failed:", err);
+        if (mounted) setSubError(err.message || "Realtime subscription failed");
+      });
 
     // unsubscribe
     return () => {
@@ -255,12 +271,7 @@ export default function LobbyDetails() {
 
   if (loading) {
     return (
-      <Box
-        display="flex"
-        justifyContent="center"
-        alignItems="center"
-        minHeight="50vh"
-      >
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="50vh">
         <CircularProgress />
       </Box>
     );
@@ -287,12 +298,7 @@ export default function LobbyDetails() {
 
       {/* Lobby Info Section */}
       <Paper elevation={3} sx={{ p: 4, mb: 3 }}>
-        <Box
-          display="flex"
-          justifyContent="space-between"
-          alignItems="center"
-          mb={2}
-        >
+        <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
           <Typography variant="h4" component="h1">
             {lobby.name || "Game Lobby"}
           </Typography>
@@ -322,23 +328,14 @@ export default function LobbyDetails() {
         </Box>
 
         <Typography variant="body1">
-          Please wait for other players to join. You can start the game once all
-          players are present.
+          Please wait for other players to join. You can start the game once all players are
+          present.
         </Typography>
 
-        <Box
-          mt={2}
-          display="flex"
-          justifyContent="space-between"
-          alignItems="center"
-        >
+        <Box mt={2} display="flex" justifyContent="space-between" alignItems="center">
           {isModerator && (
             <Box>
-              <Typography
-                variant="caption"
-                color="text.secondary"
-                display="block"
-              >
+              <Typography variant="caption" color="text.secondary" display="block">
                 As moderator, you can end the lobby for everyone.
               </Typography>
             </Box>
@@ -376,8 +373,7 @@ export default function LobbyDetails() {
               <strong>Deck:</strong> {lobby.expand.deck.name}
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              <strong>Players needed:</strong>{" "}
-              {lobby.expand.deck.number_of_players}
+              <strong>Players needed:</strong> {lobby.expand.deck.number_of_players}
             </Typography>
           </Box>
         )}
@@ -385,17 +381,10 @@ export default function LobbyDetails() {
 
       {/* Players Section */}
       <Paper elevation={3} sx={{ p: 3 }}>
-        <Box
-          display="flex"
-          justifyContent="space-between"
-          alignItems="center"
-          mb={2}
-        >
+        <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
           <Typography variant="h5" component="h2">
             Players ({players.length}
-            {lobby.expand?.deck?.number_of_players
-              ? `/${lobby.expand.deck.number_of_players}`
-              : ""}
+            {lobby.expand?.deck?.number_of_players ? `/${lobby.expand.deck.number_of_players}` : ""}
             )
           </Typography>
           {isModerator && (
@@ -467,13 +456,7 @@ export default function LobbyDetails() {
                           size="small"
                           color={p.connected ? "success" : "default"}
                         />
-                        {isManual && (
-                          <Chip
-                            label="Manual"
-                            size="small"
-                            variant="outlined"
-                          />
-                        )}
+                        {isManual && <Chip label="Manual" size="small" variant="outlined" />}
                       </span>
                     }
                   />
