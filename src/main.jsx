@@ -9,15 +9,15 @@ import SetUp from "./app/SetUp";
 import Nav from "./components/Nav";
 import Account from "./app/Account";
 import ErrorPage from "./components/ErrorPage";
-import Game from "./app/Game";
+import GameProgress from "./app/GameProgress";
 import Players from "./app/Players";
 import { UserProvider } from "./components/UserContext";
 import AuthLayout from "./app/auth/AuthLayout";
 import { ThemeProvider } from "./components/ThemeContext";
 import { ErrorProvider } from "./components/ErrorContext";
 import Toast from "./components/Toast";
-import Lobby from "./app/Lobby";
-import JoinLobby from "./app/JoinLobby";
+import Game from "./app/Game";
+import JoinGame from "./app/JoinGame";
 import OTP from "./app/auth/OTP";
 
 const router = createBrowserRouter([
@@ -65,27 +65,17 @@ const router = createBrowserRouter([
     ],
   },
   {
-    path: "/joinLobby",
+    path: "/joinGame",
     Component: AuthLayout,
     children: [
       {
         path: "",
-        element: <JoinLobby />,
+        element: <JoinGame />,
       },
     ],
   },
   {
-    path: "/lobby/:lobbyId",
-    Component: AuthLayout,
-    children: [
-      {
-        path: "",
-        element: <Lobby />,
-      },
-    ],
-  },
-  {
-    path: "/game/:lobbyId",
+    path: "/game/:gameId",
     Component: AuthLayout,
     children: [
       {

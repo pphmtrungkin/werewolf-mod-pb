@@ -2,7 +2,7 @@
  * Generates a guest ID in the format 'guestXXXXXXXXXX'
  */
 
-routerAdd("POST", "/api/joinLobby", (e) => {
+routerAdd("POST", "/api/joinGame", (e) => {
   try {
     // Generate guest ID
     function generateGuestId() {
@@ -25,35 +25,30 @@ routerAdd("POST", "/api/joinLobby", (e) => {
     }
 
     // Data extraction from body
-    const { lobbyId, authCode, username } = body;
-    console.log("Extracted values:", {
-      lobbyId,
-      authCode,
-      username,
-    });
+    const { gameId, authCode, username } = body;
 
     // Missing values error handling
-    if (!lobbyId || !authCode) {
-      console.error("ERROR: Missing required fields - lobbyId:", lobbyId, "authCode:", authCode);
-      return e.json(400, { message: "Lobby ID and code are required." });
+    if (!gameId || !authCode) {
+      console.error("ERROR: Missing required fields - gameId:", gameId, "authCode:", authCode);
+      return e.json(400, { message: "Game ID and code are required." });
     }
 
     // Grabbing correct auth code from lobby record
-    let lobbyRecord;
+    let gameRecord;
     try {
-      console.log("Attempting to find lobby with ID:", lobbyId);
-      lobbyRecord = $app.findRecordById("lobbies", lobbyId);
-      console.log("Lobby found successfully");
+      console.log("Attempting to find game with ID:", gameId);
+      gameRecord = $app.findRecordById("games", gameId);
+      console.log("Game found successfully");
     } catch (error) {
       console.error("ERROR: Lobby not found -", error.message);
       return e.json(404, { message: "Lobby not found." });
     }
 
     // Incorrect auth code error handling
-    if (authCode !== lobbyRecord.getString("code")) {
+    if (authCode !== gameRecord.getString("code")) {
       console.error(
         "ERROR: Incorrect lobby code - expected:",
-        lobbyRecord.getString("code"),
+        gameRecord.getString("code"),
         "got:",
         authCode,
       );
@@ -83,8 +78,8 @@ routerAdd("POST", "/api/joinLobby", (e) => {
     try {
       console.log("Searching for existing player record with filter:", { lobbyId, userId });
       playerRecord = $app.findFirstRecordByFilter(
-        "lobby_players",
-        "lobby = {:lobbyId} && player = {:username}",
+        "game_players",
+        "game = {:lobbyId} && player = {:username}",
         { lobbyId, username },
       );
       console.log("Existing player record found:", playerRecord.id);
@@ -103,12 +98,12 @@ routerAdd("POST", "/api/joinLobby", (e) => {
       // Return not allow code because the user already exists
       return e.json(403, { message: "Player already exists" });
     } else {
-      const collection = $app.findCollectionByNameOrId("lobby_players");
+      const collection = $app.findCollectionByNameOrId("game_players");
       console.log("Collection found:", collection.name);
 
       const record = new Record(collection);
 
-      record.set("lobby", lobbyId);
+      record.set("game", lobbyId);
       record.set("player_id", userId);
       record.set("player", username);
       record.set("ip_address", ip);
@@ -117,10 +112,10 @@ routerAdd("POST", "/api/joinLobby", (e) => {
 
       try {
         $app.save(record);
-        console.log("New player record saved successfully, ID:", record.id);
+        console.log("new player record saved successfully, id:", record.id);
       } catch (error) {
-        console.error("ERROR: Failed to save new player record:", error.message, error);
-        return e.json(500, { message: "Failed to create player record" });
+        console.error("error: failed to save new player record:", error.message, error);
+        return e.json(500, { message: "failed to create player record" });
       }
 
       const response = {

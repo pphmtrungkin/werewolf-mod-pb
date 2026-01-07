@@ -18,13 +18,13 @@ import {
 import Spinner from "../components/Spinner";
 import { useNavigate } from "react-router";
 import UserContext from "../components/UserContext";
-import useLobbies from "../hooks/useLobbies";
+import useGames from "../hooks/useGames";
 
-const JoinLobby = () => {
+const JoinGame = () => {
   const { user } = useContext(UserContext);
-  const { joinLobby } = useLobbies();
-  const [localLobbies, setLocalLobbies] = useState([]);
-  const [selectedLobby, setSelectedLobby] = useState(null);
+  const { joinGame } = useGames();
+  const [localGames, setLocalGames] = useState([]);
+  const [selectedGame, setSelectedGame] = useState(null);
   const [authCode, setAuthCode] = useState("");
   const [authError, setAuthError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -37,24 +37,24 @@ const JoinLobby = () => {
 
   useEffect(() => {
     let mounted = true;
-    const fetchLocalLobbies = async () => {
+    const fetchLocalGames = async () => {
       try {
         setLoading(true);
-        const items = await pbService.getWaitingLobbies();
+        const items = await pbService.getWaitingGames();
         if (!mounted) return;
-        setLocalLobbies(items || []);
+        setLocalGames(items || []);
       } catch (err) {
-        console.error("Error fetching local lobbies", err);
-        if (mounted) setLocalLobbies([]);
+        console.error("Error fetching local games", err);
+        if (mounted) setLocalGames([]);
       } finally {
         if (mounted) setLoading(false);
       }
     };
 
     // initial fetch, then poll every POLL_INTERVAL_MS
-    fetchLocalLobbies();
+    fetchLocalGames();
     const intervalId = setInterval(() => {
-      fetchLocalLobbies();
+      fetchLocalGames();
     }, POLL_INTERVAL_MS);
 
     return () => {
@@ -63,22 +63,22 @@ const JoinLobby = () => {
     };
   }, []);
 
-  const handleClickOpen = (lobby) => {
-    setSelectedLobby(lobby);
+  const handleClickOpen = (game) => {
+    setSelectedGame(game);
     setOpen(true);
   };
 
   const handleClose = () => {
     setOpen(false);
-    setSelectedLobby(null);
+    setSelectedGame(null);
     setAuthCode("");
     setAuthError("");
   };
 
-  const handleJoinLobby = async () => {
-    if (!selectedLobby) return;
+  const handleJoinGame = async () => {
+    if (!selectedGame) return;
     if (!authCode) {
-      setAuthError("Please enter the lobby code.");
+      setAuthError("Please enter the game code.");
       return;
     }
     if (!user && !name.trim()) {
@@ -94,9 +94,13 @@ const JoinLobby = () => {
       }
       const finalUsername = user ? user.name : name;
 
-      await joinLobby(selectedLobby.id, authCode, finalUsername);
+      const result = await joinGame(selectedGame.id, authCode, finalUsername);
+
+      if (result && result.success) {
+        navigate(`/game/${selectedGame.id}`);
+      }
     } catch (error) {
-      const message = error.data?.message || error.message || "Failed to join lobby.";
+      const message = error.data?.message || error.message || "Failed to join game.";
       setAuthError(message);
     } finally {
       setIsJoining(false);
@@ -106,21 +110,21 @@ const JoinLobby = () => {
   return (
     <Box className="my-20 mx-auto max-w-3xl">
       <Typography variant="h4" gutterBottom align="center">
-        Join a Lobby
+        Join a game
       </Typography>
 
       <Paper sx={{ p: 2, mb: 3 }}>
-        <Typography variant="h6">Locally hosted lobbies</Typography>
-        {loading && localLobbies.length === 0 ? (
+        <Typography variant="h6">Locally hosted games</Typography>
+        {loading && localGames.length === 0 ? (
           <Box className="flex justify-center items-center" sx={{ my: 3 }}>
             <Spinner />
-            <Typography sx={{ ml: 2 }}>Searching for local lobbies...</Typography>
+            <Typography sx={{ ml: 2 }}>Searching for local games...</Typography>
           </Box>
-        ) : localLobbies.length === 0 ? (
-          <Typography>No local lobbies found on your LAN.</Typography>
+        ) : localGames.length === 0 ? (
+          <Typography>No local games found on your LAN.</Typography>
         ) : (
           <List>
-            {localLobbies.map((l) => (
+            {localGames.map((l) => (
               <ListItem key={l.id} divider>
                 <ListItemText
                   primary={`${l.name}`}
@@ -142,11 +146,11 @@ const JoinLobby = () => {
           component: "form",
           onSubmit: (event) => {
             event.preventDefault();
-            handleJoinLobby();
+            handleJoinGame();
           },
         }}
       >
-        <DialogTitle>Enter lobby code to join</DialogTitle>
+        <DialogTitle>Enter game code to join</DialogTitle>
         <DialogContent>
           {!user && (
             <>
@@ -169,14 +173,14 @@ const JoinLobby = () => {
             </>
           )}
           <DialogContentText>
-            {selectedLobby
-              ? `${selectedLobby.name} — enter the lobby code to authenticate access.`
+            {selectedGame
+              ? `${selectedGame.name} — enter the game code to authenticate access.`
               : ""}
           </DialogContentText>
           <TextField
             autoFocus
             margin="dense"
-            label="Lobby Code"
+            label="game Code"
             fullWidth
             value={authCode}
             onChange={(e) => {
@@ -200,4 +204,4 @@ const JoinLobby = () => {
   );
 };
 
-export default JoinLobby;
+export default JoinGame;

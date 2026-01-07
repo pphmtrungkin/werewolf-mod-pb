@@ -21,7 +21,7 @@ import {
 import KeyboardArrowLeftIcon from "@mui/icons-material/KeyboardArrowLeft";
 import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
 import AlertDialog from "../components/AlertDialog";
-import useLobbies from "../hooks/useLobbies";
+import useGames from "../hooks/useGames";
 
 export default function SetUp() {
   // cards and sides are provided by hooks (encapsulate fetching + state)
@@ -49,10 +49,11 @@ export default function SetUp() {
     setSelectedSideButton(id);
   };
 
+  // Title will be provided via AlertDialog input
+
   const [open, setOpen] = useState(false);
   const { user } = useContext(UserContext);
-  const { hostLobby } = useLobbies(null);
-
+  const { hostGame } = useGames(null);
 
   const {
     selectedCards,
@@ -92,36 +93,40 @@ export default function SetUp() {
   const formatTime = (totalSeconds) => {
     const minutes = Math.floor(totalSeconds / 60);
     const seconds = totalSeconds % 60;
-    return `${minutes.toString().padStart(2, "0")}:${seconds
-      .toString()
-      .padStart(2, "0")}`;
+    return `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
   };
 
-  const handleCreateLobby = async () => {
+  const handleCreateGame = async (title) => {
     try {
       setOpen(false);
-      const result = await hostLobby(user, selectedDeck.id);
-      if (result && result.lobbyId) {
-        navigate("/lobby/" + result.lobbyId);
+
+      const result = await hostGame(title);
+
+      if (result) {
+        if (result.ok) {
+          navigate("/game/" + result.gameId);
+        } else {
+          console.error("Failed to host game", result);
+        }
       } else {
-        console.error("Failed to host lobby", result);
+        console.error("Failed to host game", result);
       }
     } catch (err) {
-      console.error("Error hosting lobby", err);
+      console.error("Error hosting game", err);
     }
   };
+
+  useEffect(() => {
+    if (!user) {
+      navigate("/auth/login");
+    }
+  }, [user]);
 
   return (
     <>
       <div className="my-28">
         {/* Add this alert near the top of your content */}
-        <Slide
-          direction="down"
-          in={showMaxPlayersAlert}
-          mountOnEnter
-          unmountOnExit
-          timeout={300}
-        >
+        <Slide direction="down" in={showMaxPlayersAlert} mountOnEnter unmountOnExit timeout={300}>
           <Alert
             severity="warning"
             variant="filled"
@@ -133,8 +138,8 @@ export default function SetUp() {
               zIndex: 20,
             }}
           >
-            Maximum number of players ({numberOfPlayers}) reached. Remove cards
-            to add different ones.
+            Maximum number of players ({numberOfPlayers}) reached. Remove cards to add different
+            ones.
           </Alert>
         </Slide>
 
@@ -145,9 +150,7 @@ export default function SetUp() {
             <Spinner />
           </div>
         ) : decksError ? (
-          <div className="text-red-500 text-center">
-            Error loading decks: {decksError.message}
-          </div>
+          <div className="text-red-500 text-center">Error loading decks: {decksError.message}</div>
         ) : (
           <FormControl
             sx={{
@@ -196,11 +199,7 @@ export default function SetUp() {
               }}
             >
               {decks.map((deck) => (
-                <MenuItem
-                  key={deck.id}
-                  value={deck.id}
-                  sx={{ color: "var(--text)" }}
-                >
+                <MenuItem key={deck.id} value={deck.id} sx={{ color: "var(--text)" }}>
                   {deck.name}
                 </MenuItem>
               ))}
@@ -215,9 +214,7 @@ export default function SetUp() {
           >
             <KeyboardArrowLeftIcon fontSize="inherit" />
           </IconButton>
-          <p className="text-center text-xl font-semibold">
-            Players: {numberOfPlayers}
-          </p>
+          <p className="text-center text-xl font-semibold">Players: {numberOfPlayers}</p>
 
           <IconButton
             color="primary"
@@ -233,10 +230,7 @@ export default function SetUp() {
         />
 
         {/* Display total number of selected cards */}
-        <p
-          className="text-center text-2xl font-semibold"
-          style={{ color: "var(--text)" }}
-        >
+        <p className="text-center text-2xl font-semibold" style={{ color: "var(--text)" }}>
           Total: {total}
         </p>
         <hr
@@ -245,12 +239,8 @@ export default function SetUp() {
         />
 
         {/* Display number of selected cards*/}
-        <p
-          className="text-center text-lg font-medium mb-4"
-          style={{ color: "var(--text)" }}
-        >
-          Selected Cards:{" "}
-          {(selectedCards?.length ?? 0) + (loadedSelectedCards?.length ?? 0)}
+        <p className="text-center text-lg font-medium mb-4" style={{ color: "var(--text)" }}>
+          Selected Cards: {(selectedCards?.length ?? 0) + (loadedSelectedCards?.length ?? 0)}
         </p>
 
         <div className="flex justify-around items-center my-8">
@@ -294,9 +284,7 @@ export default function SetUp() {
           <IconButton onClick={() => setTimer(timer - 1)} size="large">
             <KeyboardArrowLeftIcon fontSize="inherit" />
           </IconButton>
-          <h2 className="text-center text-6xl font-normal">
-            {formatTime(timer)}
-          </h2>
+          <h2 className="text-center text-6xl font-normal">{formatTime(timer)}</h2>
           <IconButton onClick={() => setTimer(timer + 1)} size="large">
             <KeyboardArrowRightIcon fontSize="inherit" />
           </IconButton>
@@ -305,17 +293,23 @@ export default function SetUp() {
           <button
             type="button"
             className="w-1/3 h-12 bg-gray-500 text-white rounded-lg hover:bg-white hover:text-gray-800 text-lg font-semibold transition-colors duration-200"
-            onClick={() => saveSelectedCards(selectedDeck.id)}
+            onClick={() =>
+              saveSelectedCards(selectedDeck.id, {
+                number_of_players: selectedCards.length + loadedSelectedCards.length,
+                timer: timer,
+              })
+            }
           >
             Save the setup
           </button>
         </div>
+
         <div className="flex justify-center mt-8">
           <AlertDialog
             open={open}
             setOpen={setOpen}
             openButtonTitle="Host a Game"
-            handleConfirm={handleCreateLobby}
+            handleConfirm={handleCreateGame}
             title="Confirm Setup"
             message="Are you sure you want to start hosting a game with the current setup?"
           />

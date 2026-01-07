@@ -1,14 +1,12 @@
-import { createContext, useEffect, useState, useCallback } from 'react';
-import {jwtDecode} from 'jwt-decode';
-import { useInterval } from 'usehooks-ts';
-import ms from 'ms';
-import pb from '../pocketbase';
-import pbService from '../services/pbService';
+import { createContext, useEffect, useState, useCallback } from "react";
+import { jwtDecode } from "jwt-decode";
+import { useInterval } from "usehooks-ts";
+import ms from "ms";
+import pb from "../pocketbase";
+import pbService from "../services/pbService";
 
 const fiveMinutesInMs = ms("5 minutes");
 const twoMinutesInMs = ms("2 minutes");
-
-
 
 // Create a context
 export const UserContext = createContext({});
@@ -21,7 +19,6 @@ export const UserProvider = ({ children }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-
   useEffect(() => {
     return pb.authStore.onChange(() => {
       setToken(pb.authStore.token);
@@ -31,6 +28,7 @@ export const UserProvider = ({ children }) => {
 
   useEffect(() => {
     if (user && user.avatar) {
+      console.log(user);
       const url = `${pb.baseUrl}/api/files/${user.collectionId}/${user.id}/${user.avatar}`;
       setAvatar(url);
     } else {
@@ -53,7 +51,7 @@ export const UserProvider = ({ children }) => {
       const record = await pbService.registerUser(data);
       return { record };
     } catch (error) {
-      console.error('Registration error:', error);
+      console.error("Registration error:", error);
       throw error;
     } finally {
       setLoading(false);
@@ -68,21 +66,27 @@ export const UserProvider = ({ children }) => {
     } catch (error) {
       const mfaId = error.response?.mfaId;
       if (!mfaId) {
-        console.error('Login error:', error);
+        console.error("Login error:", error);
+      } else {
+        const result = await pbService.requestOTP(email);
+        return { error, mfaId: mfaId, otpId: result.otpId };
       }
-      const result = await pbService.requestOTP(email);
-      return { error, mfaId: mfaId, otpId: result.otpId };
     } finally {
       setLoading(false);
     }
   }, []);
 
   const verifyOTP = useCallback(async (mfaId, otpId, code) => {
+    console.log("Verify: " + mfaId + ", " + otpId + ", " + code);
     setLoading(true);
     try {
-      const authData = await pbService.authWithOTP(otpId, code, { mfaId });
+      const authData = await pbService.authWithOTP(otpId, code, { mfaId: mfaId });
       const url = authData.record.avatar
-        ? pbService.getFileUrl(authData.record.collectionId, authData.record.id, authData.record.avatar)
+        ? pbService.getFileUrl(
+            authData.record.collectionId,
+            authData.record.id,
+            authData.record.avatar,
+          )
         : null;
 
       setUser(authData.record);
@@ -91,7 +95,7 @@ export const UserProvider = ({ children }) => {
 
       return { success: true, record: authData.record, token: authData.token };
     } catch (error) {
-      console.error('OTP Verification error:', error);
+      console.error("OTP Verification error:", error);
       return { error };
     } finally {
       setLoading(false);
@@ -117,15 +121,16 @@ export const UserProvider = ({ children }) => {
         await pbService.refreshAuthToken();
       }
     } catch (error) {
-      console.error('Token refresh error:', error);
+      console.error("Token refresh error:", error);
     }
   }, [token]);
 
   useInterval(refreshSession, token ? twoMinutesInMs : null);
 
-
   return (
-    <UserContext.Provider value={{user, setUser, login, register, logout, verifyOTP, avatar, loading, setLoading}}>
+    <UserContext.Provider
+      value={{ user, setUser, login, register, logout, verifyOTP, avatar, loading, setLoading }}
+    >
       {children}
     </UserContext.Provider>
   );
