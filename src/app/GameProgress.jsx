@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useParams } from "react-router";
 import {
   Box,
@@ -13,6 +13,11 @@ import {
   Alert,
   Divider,
   LinearProgress,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Stack,
 } from "@mui/material";
 import { useContext } from "react";
 import UserContext from "../components/UserContext";
@@ -24,11 +29,15 @@ export default function Game() {
   const { user } = useContext(UserContext);
   const [selectedPlayer, setSelectedPlayer] = useState(null);
 
+  // Moderator workflow state (UI-only; persistence requires backend support)
+  const [modModeEnabled, setModModeEnabled] = useState(false);
+  const [modCardIndex, setModCardIndex] = useState(0);
+  const [modAssignments, setModAssignments] = useState({}); // { [roleTitleLower]: { holderId: string|null, targetId: string|null } }
+
   const {
     lobby,
     game,
     players,
-    actions,
     loading,
     error,
     currentPlayer,
@@ -58,11 +67,98 @@ export default function Game() {
     }
   };
 
+  const isModerator = useMemo(() => {
+    // Best-effort moderator detection. If your lobby/game schema differs, adjust these checks.
+    if (!user) return false;
+    if (lobby?.moderator && user?.id && lobby.moderator === user.id) return true;
+    if (game?.moderator && user?.id && game.moderator === user.id) return true;
+    if (user?.role && String(user.role).toLowerCase() === "moderator") return true;
+    return false;
+  }, [user, lobby?.moderator, game?.moderator]);
+
+  const rolesInGame = useMemo(() => {
+    // Derive a stable list of "cards" from the roles currently assigned to players.
+    // Sorted using the already-computed action order so moderators walk in night resolution order.
+    const seen = new Set();
+    const orderedRoles = [];
+
+    (playersInActionOrder || []).forEach((p) => {
+      const role = (p?.role || "Villager").trim();
+      const key = role.toLowerCase();
+      if (!seen.has(key)) {
+        seen.add(key);
+        orderedRoles.push({ title: role, key });
+      }
+    });
+
+    // Ensure "Villager" appears last if present (usually has no actionable targeting).
+    const villagersIndex = orderedRoles.findIndex((r) => r.key === "villager");
+    if (villagersIndex >= 0 && villagersIndex !== orderedRoles.length - 1) {
+      const [villagerRole] = orderedRoles.splice(villagersIndex, 1);
+      orderedRoles.push(villagerRole);
+    }
+
+    return orderedRoles;
+  }, [playersInActionOrder]);
+
+  const currentModRole = rolesInGame[modCardIndex] || null;
+
+  const getPlayerName = (id) => {
+    const p = players.find((x) => x.id === id);
+    return p?.player || "Unknown";
+  };
+
+  const setModHolder = (roleKey, holderId) => {
+    setModAssignments((prev) => ({
+      ...prev,
+      [roleKey]: {
+        holderId: holderId || null,
+        targetId: prev?.[roleKey]?.targetId || null,
+      },
+    }));
+  };
+
+  const setModTarget = (roleKey, targetId) => {
+    setModAssignments((prev) => ({
+      ...prev,
+      [roleKey]: {
+        holderId: prev?.[roleKey]?.holderId || null,
+        targetId: targetId || null,
+      },
+    }));
+  };
+
+  const modNextCard = () => {
+    setModCardIndex((i) => Math.min(i + 1, Math.max(rolesInGame.length - 1, 0)));
+  };
+
+  const modPrevCard = () => {
+    setModCardIndex((i) => Math.max(i - 1, 0));
+  };
+
+  const modJumpToFirstIncomplete = () => {
+    const idx = rolesInGame.findIndex((r) => {
+      const a = modAssignments[r.key];
+      // Consider complete if holder chosen; target optional for roles that don't need it
+      return !a?.holderId;
+    });
+    if (idx >= 0) setModCardIndex(idx);
+  };
+
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins}:${String(secs).padStart(2, "0")}`;
   };
+
+  const modProgress = useMemo(() => {
+    if (!rolesInGame.length) return { complete: 0, total: 0 };
+    const complete = rolesInGame.reduce((acc, r) => {
+      const a = modAssignments[r.key];
+      return acc + (a?.holderId ? 1 : 0);
+    }, 0);
+    return { complete, total: rolesInGame.length };
+  }, [rolesInGame, modAssignments]);
 
   if (loading) {
     return (
@@ -112,6 +208,156 @@ export default function Game() {
         </Box>
 
         <Divider sx={{ my: 2 }} />
+
+        {/* Moderator: card-by-card assignment workflow */}
+        {isModerator && (
+          <Box sx={{ mb: 2 }}>
+            <Stack direction="row" spacing={1} alignItems="center" justifyContent="space-between">
+              <Typography variant="h6">Moderator Tools</Typography>
+              <Button
+                variant={modModeEnabled ? "contained" : "outlined"}
+                color="secondary"
+                onClick={() => {
+                  setModModeEnabled((v) => !v);
+                  setSelectedPlayer(null);
+                }}
+              >
+                {modModeEnabled ? "Exit Moderator Card Entry" : "Enter Moderator Card Entry"}
+              </Button>
+            </Stack>
+
+            {modModeEnabled && (
+              <Paper variant="outlined" sx={{ p: 2, mt: 2 }}>
+                {rolesInGame.length === 0 ? (
+                  <Alert severity="info">
+                    No roles detected yet. Start the game / assign roles first so I can build the
+                    card list.
+                  </Alert>
+                ) : (
+                  <>
+                    <Stack
+                      direction={{ xs: "column", sm: "row" }}
+                      spacing={2}
+                      alignItems={{ xs: "stretch", sm: "center" }}
+                      justifyContent="space-between"
+                      sx={{ mb: 2 }}
+                    >
+                      <Box>
+                        <Typography variant="subtitle1">
+                          Card {modCardIndex + 1} of {rolesInGame.length}:{" "}
+                          <strong>{currentModRole?.title}</strong>
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          Progress: {modProgress.complete}/{modProgress.total} cards assigned
+                        </Typography>
+                      </Box>
+
+                      <Stack direction="row" spacing={1} justifyContent="flex-end">
+                        <Button variant="outlined" onClick={modJumpToFirstIncomplete}>
+                          First Incomplete
+                        </Button>
+                        <Button
+                          variant="outlined"
+                          onClick={modPrevCard}
+                          disabled={modCardIndex === 0}
+                        >
+                          Previous
+                        </Button>
+                        <Button
+                          variant="contained"
+                          onClick={modNextCard}
+                          disabled={modCardIndex >= rolesInGame.length - 1}
+                        >
+                          Next
+                        </Button>
+                      </Stack>
+                    </Stack>
+
+                    <Divider sx={{ mb: 2 }} />
+
+                    <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+                      <FormControl fullWidth>
+                        <InputLabel id="mod-holder-label">Who has this card?</InputLabel>
+                        <Select
+                          labelId="mod-holder-label"
+                          label="Who has this card?"
+                          value={modAssignments[currentModRole.key]?.holderId || ""}
+                          onChange={(e) => setModHolder(currentModRole.key, e.target.value)}
+                        >
+                          <MenuItem value="">
+                            <em>Unassigned</em>
+                          </MenuItem>
+                          {players.map((p) => (
+                            <MenuItem key={p.id} value={p.id}>
+                              {p.player}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
+
+                      <FormControl fullWidth>
+                        <InputLabel id="mod-target-label">Target (optional)</InputLabel>
+                        <Select
+                          labelId="mod-target-label"
+                          label="Target (optional)"
+                          value={modAssignments[currentModRole.key]?.targetId || ""}
+                          onChange={(e) => setModTarget(currentModRole.key, e.target.value)}
+                          disabled={!modAssignments[currentModRole.key]?.holderId}
+                        >
+                          <MenuItem value="">
+                            <em>None</em>
+                          </MenuItem>
+                          {players
+                            .filter((p) => p.id !== modAssignments[currentModRole.key]?.holderId)
+                            .map((p) => (
+                              <MenuItem key={p.id} value={p.id}>
+                                {p.player}
+                              </MenuItem>
+                            ))}
+                        </Select>
+                      </FormControl>
+                    </Stack>
+
+                    <Box sx={{ mt: 2 }}>
+                      <Alert severity="warning">
+                        This moderator entry is currently <strong>UI-only</strong> and does not get
+                        saved to the server yet. To persist it, the backend needs a place to store
+                        “card holder” and “target” per night/phase (e.g. a dedicated collection or
+                        writing to <code>games_actions</code> with a moderator actor).
+                      </Alert>
+                    </Box>
+
+                    <Divider sx={{ my: 2 }} />
+
+                    <Typography variant="subtitle2" gutterBottom>
+                      Summary (this night)
+                    </Typography>
+                    <List dense>
+                      {rolesInGame.map((r) => {
+                        const a = modAssignments[r.key];
+                        const holder = a?.holderId ? getPlayerName(a.holderId) : "—";
+                        const target = a?.targetId ? getPlayerName(a.targetId) : "—";
+                        return (
+                          <ListItem key={r.key} divider>
+                            <ListItemText
+                              primary={`${r.title}`}
+                              secondary={`Holder: ${holder} • Target: ${target}`}
+                            />
+                            <Chip
+                              size="small"
+                              label={a?.holderId ? "Assigned" : "Unassigned"}
+                              color={a?.holderId ? "success" : "default"}
+                            />
+                          </ListItem>
+                        );
+                      })}
+                    </List>
+                  </>
+                )}
+              </Paper>
+            )}
+          </Box>
+        )}
 
         {/* Player Role Info */}
         {currentPlayer && (

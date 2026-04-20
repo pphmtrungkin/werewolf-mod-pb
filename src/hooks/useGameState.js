@@ -3,15 +3,27 @@ import pbService from "../services/pbService";
 
 /**
  * Custom hook for managing werewolf game state and flow
+ *
+ * Moderator is the only source of truth:
+ * - All "actions" are stored in moderator_entries and entered by the moderator.
+ * - Regular players do not act; the UI should generally show observer mode for them.
  */
 export default function useGameState(lobbyId, user) {
   const [lobby, setLobby] = useState(null);
   const [game, setGame] = useState(null);
   const [players, setPlayers] = useState([]);
-  const [actions, setActions] = useState([]);
+  const [entries, setEntries] = useState([]); // moderator_entries
   const [cards, setCards] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  const getRoleKey = useCallback(
+    (role) =>
+      String(role || "villager")
+        .trim()
+        .toLowerCase(),
+    [],
+  );
 
   // Initialize game data
   const initializeGame = useCallback(async () => {
@@ -36,13 +48,13 @@ export default function useGameState(lobbyId, user) {
       const gameData = await pbService.getGameByLobby(lobbyId);
       setGame(gameData);
 
-      // Fetch actions if game exists and is in progress
+      // Fetch moderator entries if game exists and is in progress
       if (gameData && gameData.current_night) {
-        const actionsData = await pbService.getGameActionsByGameAndNight(
+        const entriesData = await pbService.getModeratorEntriesByGameAndNight(
           gameData.id,
           gameData.current_night,
         );
-        setActions(actionsData);
+        setEntries(entriesData);
       }
     } catch (err) {
       console.error("Error initializing game:", err);
@@ -78,20 +90,19 @@ export default function useGameState(lobbyId, user) {
             }
           });
 
-          // Subscribe to actions changes
-          await pbService.subscribeGameActions(game.id, async (e) => {
+          // Subscribe to moderator entries changes
+          await pbService.subscribeModeratorEntries(game.id, async () => {
             if (!mounted) return;
 
-            // Refresh actions when they change
             if (game?.current_night) {
               try {
-                const actionsData = await pbService.getGameActionsByGameAndNight(
+                const entriesData = await pbService.getModeratorEntriesByGameAndNight(
                   game.id,
                   game.current_night,
                 );
-                setActions(actionsData);
+                setEntries(entriesData);
               } catch (err) {
-                console.error("Error refreshing actions:", err);
+                console.error("Error refreshing moderator entries:", err);
               }
             }
           });
@@ -109,7 +120,7 @@ export default function useGameState(lobbyId, user) {
         pbService.unsubscribeLobby(lobbyId);
         if (game) {
           pbService.unsubscribeGame(game.id);
-          pbService.unsubscribeGameActions();
+          pbService.unsubscribeModeratorEntries();
         }
       } catch (err) {
         console.error("Error cleaning up subscriptions:", err);
@@ -161,78 +172,101 @@ export default function useGameState(lobbyId, user) {
       .sort((a, b) => a.actionOrder - b.actionOrder);
   }, [players, cards]);
 
+  /**
+   * Moderator entries model:
+   * - We consider a role "complete" for a night if there is a moderator entry for:
+   *   (night_number, phase="night", role_key=<role>) with a non-null holder.
+   *
+   * This matches the "card-by-card" moderator workflow (one entry per role/card).
+   */
+  const hasRoleEntry = useCallback(
+    (roleKey, phase, nightNumber) => {
+      if (!entries.length) return false;
+      return entries.some((e) => {
+        const matchesNight = nightNumber ? e.night_number === nightNumber : true;
+        const matchesPhase = phase ? e.phase === phase : true;
+        const matchesRole = roleKey ? String(e.role_key || "").toLowerCase() === roleKey : true;
+        const hasHolder = !!e.holder;
+        return matchesNight && matchesPhase && matchesRole && hasHolder;
+      });
+    },
+    [entries],
+  );
+
   const getCurrentActivePlayer = useCallback(() => {
     if (!game || game.phase !== "night") return null;
 
     const orderedPlayers = getPlayersInActionOrder();
-    const actionsCompleted = actions.filter(
-      (a) => a.night_number === game.current_night && a.action_type !== "vote",
-    );
 
-    // Find first player who hasn't acted yet
-    return orderedPlayers.find(
-      (player) => !actionsCompleted.find((action) => action.actor === player.id),
-    );
-  }, [game, actions, getPlayersInActionOrder]);
+    // Find first role in order that hasn't been entered yet, then return its holder (if any)
+    for (const player of orderedPlayers) {
+      const roleKey = getRoleKey(player.role || "villager");
+      if (!hasRoleEntry(roleKey, "night", game.current_night)) {
+        // No entry yet: moderator still needs to enter this role/card.
+        // Return the player who *has* that role as the "active" placeholder (best-effort).
+        return player;
+      }
+    }
 
+    return null;
+  }, [game, entries, getPlayersInActionOrder, hasRoleEntry, getRoleKey]);
+
+  /**
+   * Legacy compatibility: hasPlayerActed(playerId, ...) is now derived from moderator_entries.
+   *
+   * For night: player is considered "acted" if their role has a moderator night entry with holder set.
+   * For voting: player is considered "acted" if there is a moderator voting entry with role_key="vote"
+   * and holder=playerId (one entry per voter). If you prefer single aggregate vote entry, adjust logic.
+   */
   const hasPlayerActed = useCallback(
     (playerId, phase = null, nightNumber = null) => {
-      if (!actions.length) return false;
+      if (!entries.length) return false;
 
-      return actions.some((action) => {
-        const matchesPlayer = action.actor === playerId;
-        const matchesPhase = phase
-          ? phase === "voting"
-            ? action.action_type === "vote"
-            : action.action_type !== "vote"
-          : true;
-        const matchesNight = nightNumber ? action.night_number === nightNumber : true;
+      if (phase === "night") {
+        const p = getPlayerById(playerId);
+        const roleKey = getRoleKey(p?.role || "villager");
+        return hasRoleEntry(roleKey, "night", nightNumber);
+      }
 
-        return matchesPlayer && matchesPhase && matchesNight;
-      });
+      if (phase === "voting") {
+        return entries.some((e) => {
+          const matchesNight = nightNumber ? e.night_number === nightNumber : true;
+          const matchesPhase = e.phase === "voting";
+          const matchesRole = String(e.role_key || "").toLowerCase() === "vote";
+          const matchesHolder = e.holder === playerId;
+          return matchesNight && matchesPhase && matchesRole && matchesHolder;
+        });
+      }
+
+      // If phase is unspecified, consider acted if any entry exists where holder matches.
+      return entries.some((e) => e.holder === playerId);
     },
-    [actions],
+    [entries, getPlayerById, getRoleKey, hasRoleEntry],
   );
 
+  /**
+   * Moderator is the only source of truth, so normal players should never be able to act.
+   * If you later add moderator detection here, you can flip this for moderators only.
+   */
   const canPlayerAct = useCallback(() => {
-    const currentPlayer = getCurrentPlayer();
-    if (!currentPlayer || !game) return false;
-
-    // Check if player already acted in current phase
-    const alreadyActed = hasPlayerActed(currentPlayer.id, game.phase, game.current_night);
-    if (alreadyActed) return false;
-
-    // During voting phase, all players can act
-    if (game.phase === "voting") return true;
-
-    // During night phase, only current active player can act
-    if (game.phase === "night") {
-      const activePlayer = getCurrentActivePlayer();
-      return activePlayer && activePlayer.id === currentPlayer.id;
-    }
-
     return false;
-  }, [getCurrentPlayer, game, hasPlayerActed, getCurrentActivePlayer]);
+  }, []);
 
   const getSelectablePlayers = useCallback(() => {
-    const currentPlayer = getCurrentPlayer();
-    if (!currentPlayer) return [];
-
-    // During voting, can vote for anyone except self
-    if (game?.phase === "voting") {
-      return players.filter((p) => p.id !== currentPlayer.id);
-    }
-
-    // During night, apply role-specific targeting rules
-    if (game?.phase === "night") {
-      // For now, simple rule: can target anyone except self
-      // TODO: Implement role-specific targeting rules (e.g., bodyguard can't protect same person twice)
-      return players.filter((p) => p.id !== currentPlayer.id);
-    }
-
+    // Regular players can't act; moderator UI will handle selection separately.
     return [];
-  }, [getCurrentPlayer, game, players]);
+  }, []);
 
+  /**
+   * submitAction now writes to moderator_entries.
+   *
+   * Contract:
+   * - Night: caller should pass a "targetPlayer" and optionally actionType; we upsert by role_key.
+   * - Voting: caller should pass a targetPlayer; we create/upsert a voter-specific entry:
+   *   role_key="vote" and holder=<currentPlayer.id> so each voter is tracked.
+   *
+   * NOTE: This hook no longer enables player actions, but GameAdmin / moderator UI can call this.
+   */
   const submitAction = useCallback(
     async (targetPlayer, actionType = null) => {
       const currentPlayer = getCurrentPlayer();
@@ -240,8 +274,12 @@ export default function useGameState(lobbyId, user) {
         throw new Error("Invalid action parameters");
       }
 
-      // Determine action type if not provided
+      if (!game.current_night && game.phase !== "waiting") {
+        throw new Error("Game night not initialized");
+      }
+
       let finalActionType = actionType;
+
       if (!finalActionType) {
         if (game.phase === "voting") {
           finalActionType = "vote";
@@ -254,21 +292,49 @@ export default function useGameState(lobbyId, user) {
       }
 
       try {
-        await pbService.createGameAction({
-          game: game.id,
-          actor: currentPlayer.id,
-          target: targetPlayer.id,
-          action_type: finalActionType,
-          night_number: game.current_night || 0,
-        });
+        if (game.phase === "night") {
+          const roleKey = getRoleKey(currentPlayer.role || "villager");
 
-        return true;
+          await pbService.upsertModeratorEntry({
+            game: game.id,
+            night_number: game.current_night || 0,
+            phase: "night",
+            role_key: roleKey,
+            holder: currentPlayer.id,
+            target: targetPlayer.id,
+            action_type: finalActionType,
+            created_by: user?.id || null,
+          });
+
+          return true;
+        }
+
+        if (game.phase === "voting") {
+          // One entry per voter: role_key="vote" and holder=<voter>
+          // Uniqueness in pbService.upsertModeratorEntry is per (game, night, phase, role_key),
+          // so we cannot use it for per-holder voting without changing its uniqueness.
+          // For now, create a new entry each time; backend/client should prevent duplicates.
+          await pbService.createModeratorEntry({
+            game: game.id,
+            night_number: game.current_night || 0,
+            phase: "voting",
+            role_key: "vote",
+            holder: currentPlayer.id,
+            target: targetPlayer.id,
+            action_type: "vote",
+            created_by: user?.id || null,
+          });
+
+          return true;
+        }
+
+        throw new Error("Unsupported phase for moderator entry");
       } catch (err) {
-        console.error("Error submitting action:", err);
+        console.error("Error submitting moderator entry:", err);
         throw new Error("Failed to submit action");
       }
     },
-    [getCurrentPlayer, game, getRoleActions],
+    [getCurrentPlayer, game, getRoleActions, getRoleKey, user?.id],
   );
 
   const getPhaseDescription = useCallback(() => {
@@ -277,28 +343,23 @@ export default function useGameState(lobbyId, user) {
     switch (game.phase) {
       case "waiting":
         return "Game is starting...";
-      case "night":
+      case "night": {
         const activePlayer = getCurrentActivePlayer();
         if (activePlayer) {
-          const currentPlayer = getCurrentPlayer();
-          if (currentPlayer && activePlayer.id === currentPlayer.id) {
-            return "It's your turn to act!";
-          } else {
-            return `Waiting for ${activePlayer.player} to act...`;
-          }
-        } else {
-          return "All night actions complete. Moving to day phase...";
+          return `Moderator input needed for ${activePlayer.role || "Villager"}...`;
         }
+        return "All night entries complete. Moving to day phase...";
+      }
       case "day":
         return "Day phase - Discuss and prepare to vote";
       case "voting":
-        return "Voting phase - Choose who to eliminate";
+        return "Voting phase - Moderator enters votes";
       case "completed":
         return "Game completed";
       default:
         return "";
     }
-  }, [game, getCurrentActivePlayer, getCurrentPlayer]);
+  }, [game, getCurrentActivePlayer]);
 
   const getTimeRemaining = useCallback(() => {
     if (!game?.phase_timer) return 0;
@@ -359,7 +420,7 @@ export default function useGameState(lobbyId, user) {
     lobby,
     game,
     players,
-    actions,
+    actions: entries, // expose under the old name so existing UI keeps working
     cards,
     loading,
     error,

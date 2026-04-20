@@ -36,6 +36,11 @@ export async function getDeck(userId) {
   return pb.collection("decks").getFullList({ filter: `owner = "${userId}"` });
 }
 
+export async function createDeck(data) {
+  // data should contain at least: { name, owner, number_of_players?, timer? }
+  return pb.collection("decks").create(data);
+}
+
 export async function getSelectedCards(deckId) {
   const items = await pb.collection("decks_cards").getFullList({
     filter: `deck = "${deckId}"`,
@@ -151,8 +156,119 @@ export function updateGamePlayer(playerId, data) {
 
 /**
 
- * Game Actions Service
+ * Moderator Entries Service
+ *
+ * Moderator is the only source of truth: this replaces using games_actions for night/vote inputs.
+ *
+ * Expected moderator_entries fields (PocketBase):
+ * - game (relation -> games)
+ * - night_number (number)
+ * - phase (text; e.g. "night" | "voting" | "day")
+ * - role_key (text; e.g. "seer", "werewolf")
+ * - holder (relation -> game_players or users, depending on your schema)
+ * - target (relation -> game_players or users; optional)
+ * - action_type (text; optional, if you want to record "kill", "peek", "vote", etc.)
+ * - created_by (relation -> users; optional)
+ */
 
+export async function createModeratorEntry(data) {
+  return pb.collection("moderator_entries").create(data);
+}
+
+export async function updateModeratorEntry(entryId, data) {
+  return pb.collection("moderator_entries").update(entryId, data);
+}
+
+export async function deleteModeratorEntry(entryId) {
+  return pb.collection("moderator_entries").delete(entryId);
+}
+
+export async function getModeratorEntriesByGame(gameId, options = {}) {
+  return pb.collection("moderator_entries").getFullList({
+    filter: `game = "${gameId}"`,
+    ...options,
+  });
+}
+
+export async function getModeratorEntriesByGameAndNight(gameId, nightNumber, options = {}) {
+  return pb.collection("moderator_entries").getFullList({
+    filter: `game = "${gameId}" && night_number = ${nightNumber}`,
+    ...options,
+  });
+}
+
+export async function getModeratorEntriesByGameNightAndPhase(
+  gameId,
+  nightNumber,
+  phase,
+  options = {},
+) {
+  return pb.collection("moderator_entries").getFullList({
+    filter: `game = "${gameId}" && night_number = ${nightNumber} && phase = "${phase}"`,
+    ...options,
+  });
+}
+
+/**
+ * Upsert helper: ensures one entry per (game, night_number, phase, role_key).
+ * If you want different uniqueness (e.g. one per holder), adjust this filter.
+ */
+export async function upsertModeratorEntry({
+  game,
+  night_number,
+  phase,
+  role_key,
+  holder = null,
+  target = null,
+  action_type = null,
+  created_by = null,
+  ...rest
+}) {
+  const roleKey = String(role_key || "").toLowerCase();
+
+  const existing = await pb.collection("moderator_entries").getFullList({
+    filter: `game = "${game}" && night_number = ${night_number} && phase = "${phase}" && role_key = "${roleKey}"`,
+    perPage: 1,
+  });
+
+  const payload = {
+    game,
+    night_number,
+    phase,
+    role_key: roleKey,
+    holder,
+    target,
+    action_type,
+    created_by,
+    ...rest,
+  };
+
+  if (existing && existing.length > 0) {
+    return pb.collection("moderator_entries").update(existing[0].id, payload);
+  }
+
+  return pb.collection("moderator_entries").create(payload);
+}
+
+export function subscribeModeratorEntries(gameId, callback) {
+  return pb.collection("moderator_entries").subscribe("*", (e) => {
+    const record = e?.record;
+    if (record && record.game === gameId) {
+      callback(e);
+    }
+  });
+}
+
+export function unsubscribeModeratorEntries() {
+  return pb.collection("moderator_entries").unsubscribe("*");
+}
+
+/**
+
+ * Game Actions Service (legacy)
+ *
+ * This is kept temporarily for compatibility but should be removed
+ * once all callers are migrated to moderator_entries.
  */
 
 export async function createGameAction(data) {
@@ -322,6 +438,8 @@ const pbService = {
 
   getDeck,
 
+  createDeck,
+
   getSelectedCards,
 
   deleteSelectedCard,
@@ -370,7 +488,19 @@ const pbService = {
 
   unsubscribeGame,
 
-  // Game Actions
+  // Moderator Entries (source of truth)
+
+  createModeratorEntry,
+  updateModeratorEntry,
+  deleteModeratorEntry,
+  getModeratorEntriesByGame,
+  getModeratorEntriesByGameAndNight,
+  getModeratorEntriesByGameNightAndPhase,
+  upsertModeratorEntry,
+  subscribeModeratorEntries,
+  unsubscribeModeratorEntries,
+
+  // Game Actions (legacy)
 
   createGameAction,
 

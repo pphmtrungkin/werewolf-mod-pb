@@ -73,14 +73,14 @@ routerAdd("POST", "/api/joinGame", (e) => {
 
     console.log("User Id with username:", userId, username);
 
-    // Checking if user is already in the lobby
+    // Checking if user is already in the game
     let playerRecord = null;
     try {
-      console.log("Searching for existing player record with filter:", { lobbyId, userId });
+      console.log("Searching for existing player record with filter:", { gameId, userId });
       playerRecord = $app.findFirstRecordByFilter(
         "game_players",
-        "game = {:lobbyId} && player = {:username}",
-        { lobbyId, username },
+        "game = {:gameId} && player = {:username}",
+        { gameId, username },
       );
       console.log("Existing player record found:", playerRecord.id);
     } catch (error) {
@@ -103,7 +103,7 @@ routerAdd("POST", "/api/joinGame", (e) => {
 
       const record = new Record(collection);
 
-      record.set("game", lobbyId);
+      record.set("game", gameId);
       record.set("player_id", userId);
       record.set("player", username);
       record.set("ip_address", ip);

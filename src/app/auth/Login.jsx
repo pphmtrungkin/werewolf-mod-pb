@@ -1,11 +1,8 @@
-import React, { useState, useContext } from "react";
+import { useState, useContext } from "react";
 import { useNavigate } from "react-router";
 import { UserContext } from "../../components/UserContext";
-import FacebookIcon from "../../../img/Icons/facebook.png";
-import { TextField, IconButton, FormControlLabel, Checkbox, Button, InputAdornment, Typography, Link } from "@mui/material";
+import { TextField, IconButton, Button, InputAdornment, Typography, Link } from "@mui/material";
 import { Visibility, VisibilityOff } from "@mui/icons-material";
-import { nanoid } from "nanoid";
-import pb from "../../pocketbase";
 
 const Login = () => {
   //Declare variables
@@ -14,15 +11,15 @@ const Login = () => {
   const [password, setPassword] = useState("zzxxccvv,.");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const {login} = useContext(UserContext);
+  const { login } = useContext(UserContext);
 
   //Handle login
   const handleLogin = async (event) => {
     event.preventDefault();
     setLoading(true);
-   
+
     const authData = await login(email, password);
-    
+
     if (authData.error) {
       navigate("/auth/otp", { state: { email, mfaId: authData.mfaId, otpId: authData.otpId } });
       setLoading(false);
@@ -43,10 +40,13 @@ const Login = () => {
       <img
         width={320}
         height="auto"
-          src="https://img.freepik.com/premium-vector/silhouette-wolf-howling-full-moon-vector-illustration-pagan-totem-wiccan-familiar-spirit-art_726692-254.jpg"
-          className="object-fit mx-auto rounded-full mb-4"
+        src="https://img.freepik.com/premium-vector/silhouette-wolf-howling-full-moon-vector-illustration-pagan-totem-wiccan-familiar-spirit-art_726692-254.jpg"
+        className="object-fit mx-auto rounded-full mb-4"
       />
-      <Typography variant="h4" className="text-center text-4xl font-semibold uppercase tracking-wide">
+      <Typography
+        variant="h4"
+        className="text-center text-4xl font-semibold uppercase tracking-wide"
+      >
         Login
       </Typography>
       <form onSubmit={handleLogin}>
@@ -60,9 +60,9 @@ const Login = () => {
             onChange={(e) => setEmail(e.target.value)}
             variant="outlined"
             sx={{
-              width: '40%',
-              '& .MuiOutlinedInput-input': {
-                padding: '1rem',
+              width: "40%",
+              "& .MuiOutlinedInput-input": {
+                padding: "1rem",
               },
             }}
           />
@@ -77,18 +77,15 @@ const Login = () => {
             variant="outlined"
             autoCapitalize="none"
             sx={{
-              width: '40%',
-              '& .MuiOutlinedInput-input': {
-                padding: '1rem',
+              width: "40%",
+              "& .MuiOutlinedInput-input": {
+                padding: "1rem",
               },
             }}
             InputProps={{
               endAdornment: (
                 <InputAdornment position="end">
-                  <IconButton
-                    onClick={() => setShowPassword(!showPassword)}
-                    edge="end"
-                  >
+                  <IconButton onClick={() => setShowPassword(!showPassword)} edge="end">
                     {showPassword ? <VisibilityOff /> : <Visibility />}
                   </IconButton>
                 </InputAdornment>
@@ -102,11 +99,11 @@ const Login = () => {
             variant="contained"
             disabled={loading}
             sx={{
-              width: '40%',
+              width: "40%",
               fontWeight: 600,
-              fontSize: '1.25rem',
-              textTransform: 'uppercase',
-              borderRadius: '1.5rem',
+              fontSize: "1.25rem",
+              textTransform: "uppercase",
+              borderRadius: "1.5rem",
             }}
             className="py-3 animate__animated animate__pulse animate__delay-1s animate__repeat-3"
           >
@@ -115,24 +112,27 @@ const Login = () => {
         </div>
       </form>
       <div className="flex justify-center flex-col gap-y-2 mt-4">
-        <Typography variant="body1" className="opacity-60 text-ms font-medium tracking-wider text-center">
+        <Typography
+          variant="body1"
+          className="opacity-60 text-ms font-medium tracking-wider text-center"
+        >
           Or continue with
         </Typography>
         <div className="flex flex-row items-center justify-center gap-x-4">
           <Button
             variant="contained"
             sx={{
-              minWidth: '48px',
-              width: '48px',
-              height: '48px',
-              borderRadius: '50%',
+              minWidth: "48px",
+              width: "48px",
+              height: "48px",
+              borderRadius: "50%",
               padding: 0,
-              backgroundColor: '#1877F2', // Facebook blue
-              '&:hover': {
-                backgroundColor: '#1664D9',
-                transform: 'scale(1.1)',
+              backgroundColor: "#1877F2", // Facebook blue
+              "&:hover": {
+                backgroundColor: "#1664D9",
+                transform: "scale(1.1)",
               },
-              transition: 'all 0.3s ease',
+              transition: "all 0.3s ease",
             }}
             onClick={() => {
               // TODO: Implement Facebook OAuth with PocketBase
@@ -153,18 +153,18 @@ const Login = () => {
           <Button
             variant="contained"
             sx={{
-              minWidth: '48px',
-              width: '48px',
-              height: '48px',
-              borderRadius: '50%',
+              minWidth: "48px",
+              width: "48px",
+              height: "48px",
+              borderRadius: "50%",
               padding: 0,
-              backgroundColor: 'white',
-              color: 'black',
-              '&:hover': {
-                backgroundColor: '#f5f5f5',
-                transform: 'scale(1.1)',
+              backgroundColor: "white",
+              color: "black",
+              "&:hover": {
+                backgroundColor: "#f5f5f5",
+                transform: "scale(1.1)",
               },
-              transition: 'all 0.3s ease',
+              transition: "all 0.3s ease",
             }}
             onClick={handleGoogleSignIn}
           >
@@ -179,17 +179,20 @@ const Login = () => {
           </Button>
         </div>
         <div className="flex flex-row items-center justify-center gap-x-2 mt-2">
-          <Typography variant="body1" className="opacity-60 text-ms font-medium tracking-wider text-center">
+          <Typography
+            variant="body1"
+            className="opacity-60 text-ms font-medium tracking-wider text-center"
+          >
             Don't have an account?
           </Typography>
           <Link
             component="button"
             variant="body1"
             onClick={() => navigate("/auth/signup")}
-            sx={{ 
-              cursor: 'pointer',
-              textDecoration: 'underline',
-              fontWeight: 'bold'
+            sx={{
+              cursor: "pointer",
+              textDecoration: "underline",
+              fontWeight: "bold",
             }}
           >
             Sign Up

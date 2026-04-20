@@ -18,7 +18,7 @@ export default function GameAdmin({ lobbyId, user }) {
     lobby,
     game,
     players,
-    actions,
+    actions, // now moderator_entries (exposed under old name by useGameState)
     loading,
     error,
     phaseDescription,
@@ -68,22 +68,22 @@ export default function GameAdmin({ lobbyId, user }) {
     return `${mins}:${String(secs).padStart(2, "0")}`;
   };
 
-  const getPhaseActions = () => {
-    if (!game) return { nightActions: [], votingActions: [] };
+  const getPhaseEntries = () => {
+    if (!game) return { nightEntries: [], votingEntries: [] };
 
-    const nightActions = actions.filter(
-      (a) => a.action_type !== "vote" && a.night_number === game.current_night,
+    const nightEntries = (actions || []).filter(
+      (e) => e.phase === "night" && e.night_number === game.current_night,
     );
-    const votingActions = actions.filter(
-      (a) => a.action_type === "vote" && a.night_number === game.current_night,
+    const votingEntries = (actions || []).filter(
+      (e) => e.phase === "voting" && e.night_number === game.current_night,
     );
 
-    return { nightActions, votingActions };
+    return { nightEntries, votingEntries };
   };
 
-  const { nightActions, votingActions } = getPhaseActions();
+  const { nightEntries, votingEntries } = getPhaseEntries();
 
-  const allNightActionsComplete = () => {
+  const allNightEntriesComplete = () => {
     if (game?.phase !== "night") return false;
 
     const playersWithActions = playersInActionOrder.filter((player) => {
@@ -91,6 +91,7 @@ export default function GameAdmin({ lobbyId, user }) {
       return player.role && player.role.toLowerCase() !== "villager";
     });
 
+    // useGameState.hasPlayerActed() is now derived from moderator_entries
     return playersWithActions.every((player) =>
       hasPlayerActed(player.id, "night", game.current_night),
     );
@@ -99,7 +100,16 @@ export default function GameAdmin({ lobbyId, user }) {
   const allVotingComplete = () => {
     if (game?.phase !== "voting") return false;
 
+    // useGameState.hasPlayerActed() for voting checks for a vote entry per holder (voter)
     return players.every((player) => hasPlayerActed(player.id, "voting", game.current_night));
+  };
+
+  const getPlayerName = (id) => players.find((p) => p.id === id)?.player || "Unknown";
+
+  const getRoleLabel = (roleKey) => {
+    if (!roleKey) return "Unknown";
+    if (String(roleKey).toLowerCase() === "vote") return "Vote";
+    return roleKey;
   };
 
   return (
@@ -154,7 +164,7 @@ export default function GameAdmin({ lobbyId, user }) {
                     </Button>
                   )}
 
-                  {game?.phase === "night" && allNightActionsComplete() && (
+                  {game?.phase === "night" && allNightEntriesComplete() && (
                     <Button
                       variant="contained"
                       color="primary"
@@ -192,12 +202,12 @@ export default function GameAdmin({ lobbyId, user }) {
           </Grid>
         </Grid>
 
-        {/* Action Progress */}
+        {/* Night Entry Progress */}
         {game?.phase === "night" && (
           <Card sx={{ mb: 3 }}>
             <CardContent>
               <Typography variant="h6" gutterBottom>
-                Night Phase Progress
+                Night Phase Progress (Moderator Entries)
               </Typography>
               <Grid container spacing={2}>
                 {playersInActionOrder.map((player) => {
@@ -222,7 +232,7 @@ export default function GameAdmin({ lobbyId, user }) {
                           {player.role || "Villager"}
                         </Typography>
                         <Chip
-                          label={hasCompleted ? "Complete" : isCurrent ? "Acting" : "Waiting"}
+                          label={hasCompleted ? "Entered" : isCurrent ? "Next" : "Waiting"}
                           color={hasCompleted ? "success" : isCurrent ? "warning" : "default"}
                           size="small"
                           sx={{ mt: 1 }}
@@ -241,12 +251,14 @@ export default function GameAdmin({ lobbyId, user }) {
           <Card sx={{ mb: 3 }}>
             <CardContent>
               <Typography variant="h6" gutterBottom>
-                Voting Progress
+                Voting Progress (Moderator Entries)
               </Typography>
               <Grid container spacing={2}>
                 {players.map((player) => {
                   const hasVoted = hasPlayerActed(player.id, "voting", game.current_night);
-                  const vote = votingActions.find((a) => a.actor === player.id);
+
+                  // In the new model, votes are entries with phase="voting", role_key="vote", holder=<voter>
+                  const voteEntry = (votingEntries || []).find((e) => e.holder === player.id);
 
                   return (
                     <Grid item xs={12} sm={6} md={4} key={player.id}>
@@ -264,11 +276,11 @@ export default function GameAdmin({ lobbyId, user }) {
                         </Typography>
                         <Typography variant="body2" color="text.secondary">
                           {hasVoted
-                            ? `Voted for: ${players.find((p) => p.id === vote?.target)?.player || "Unknown"}`
-                            : "Not voted"}
+                            ? `Voted for: ${getPlayerName(voteEntry?.target)}`
+                            : "Not entered"}
                         </Typography>
                         <Chip
-                          label={hasVoted ? "Voted" : "Waiting"}
+                          label={hasVoted ? "Entered" : "Waiting"}
                           color={hasVoted ? "success" : "default"}
                           size="small"
                           sx={{ mt: 1 }}
@@ -282,39 +294,41 @@ export default function GameAdmin({ lobbyId, user }) {
           </Card>
         )}
 
-        {/* Actions Log */}
+        {/* Entries Log */}
         <Card>
           <CardContent>
             <Typography variant="h6" gutterBottom>
-              Recent Actions
+              Recent Moderator Entries
             </Typography>
-            {actions.length === 0 ? (
+            {(actions || []).length === 0 ? (
               <Typography variant="body2" color="text.secondary">
-                No actions yet this night.
+                No moderator entries yet.
               </Typography>
             ) : (
               <Box sx={{ maxHeight: 200, overflow: "auto" }}>
-                {actions
-                  .filter((a) => a.night_number === game?.current_night)
+                {(actions || [])
+                  .filter((e) => e.night_number === game?.current_night)
                   .sort((a, b) => new Date(b.created) - new Date(a.created))
-                  .map((action) => {
-                    const actor = players.find((p) => p.id === action.actor);
-                    const target = players.find((p) => p.id === action.target);
+                  .map((entry) => {
+                    const holderName = getPlayerName(entry.holder);
+                    const targetName = entry.target ? getPlayerName(entry.target) : "—";
+                    const phaseLabel = entry.phase || "unknown";
+                    const roleLabel = getRoleLabel(entry.role_key);
 
                     return (
                       <Box
-                        key={action.id}
+                        key={entry.id}
                         sx={{ mb: 1, p: 1, backgroundColor: "grey.50", borderRadius: 1 }}
                       >
                         <Typography variant="body2">
-                          <strong>{actor?.player}</strong> used <em>{action.action_type}</em> on{" "}
-                          <strong>{target?.player}</strong>
+                          <strong>{roleLabel}</strong> • holder: <strong>{holderName}</strong> •
+                          target: <strong>{targetName}</strong>
                           <Typography
                             component="span"
                             variant="caption"
                             sx={{ ml: 1, color: "text.secondary" }}
                           >
-                            ({action.action_type === "vote" ? "voting" : "night"} phase)
+                            ({phaseLabel})
                           </Typography>
                         </Typography>
                       </Box>
@@ -326,22 +340,22 @@ export default function GameAdmin({ lobbyId, user }) {
         </Card>
 
         {/* Warnings/Alerts */}
-        {game?.phase === "night" && !allNightActionsComplete() && (
+        {game?.phase === "night" && !allNightEntriesComplete() && (
           <Alert severity="info" sx={{ mt: 2 }}>
-            Waiting for{" "}
+            Waiting for moderator to enter{" "}
             {
               playersInActionOrder.filter((p) => !hasPlayerActed(p.id, "night", game.current_night))
                 .length
             }{" "}
-            players to complete their night actions.
+            remaining night entries.
           </Alert>
         )}
 
         {game?.phase === "voting" && !allVotingComplete() && (
           <Alert severity="info" sx={{ mt: 2 }}>
-            Waiting for{" "}
+            Waiting for moderator to enter{" "}
             {players.filter((p) => !hasPlayerActed(p.id, "voting", game.current_night)).length}{" "}
-            players to vote.
+            remaining votes.
           </Alert>
         )}
       </Paper>

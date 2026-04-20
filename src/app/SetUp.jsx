@@ -1,13 +1,14 @@
 import { useState, useContext, useEffect } from "react";
 import SideButton from "../components/SideButton";
 import Card from "../components/Card";
-import { useNavigate, Outlet } from "react-router";
+import { useNavigate } from "react-router";
 import UserContext from "../components/UserContext";
 import Spinner from "../components/Spinner";
 import { useCards } from "../hooks/useCards";
 import { useSides } from "../hooks/useSides";
 import useDecks from "../hooks/useDecks";
 import useSelectedCards from "../hooks/useSelectedCards";
+
 import {
   FormControl,
   InputLabel,
@@ -15,28 +16,50 @@ import {
   MenuItem,
   IconButton,
   Alert,
-  Collapse,
   Slide,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  Fab,
 } from "@mui/material";
+
 import KeyboardArrowLeftIcon from "@mui/icons-material/KeyboardArrowLeft";
+
 import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
+import AddIcon from "@mui/icons-material/Add";
+
 import AlertDialog from "../components/AlertDialog";
+
 import useGames from "../hooks/useGames";
+import pbService from "../services/pbService";
 
 export default function SetUp() {
   // cards and sides are provided by hooks (encapsulate fetching + state)
-  const { cards, loading: cardsLoading, error: cardsError } = useCards();
-  const { sides, loading: sidesLoading, error: sidesError } = useSides();
+  const { cards } = useCards();
+  const { sides } = useSides();
+
   const {
     decks,
+
     numberOfPlayers,
+
     setNumberOfPlayers,
+
     timer,
+
     setTimer,
+
     selectedDeck,
+
     setSelectedDeck,
+
     loading: decksLoading,
+
     error: decksError,
+
+    refresh,
   } = useDecks();
 
   const navigate = useNavigate();
@@ -52,6 +75,9 @@ export default function SetUp() {
   // Title will be provided via AlertDialog input
 
   const [open, setOpen] = useState(false);
+  const [createDeckOpen, setCreateDeckOpen] = useState(false);
+  const [newDeckName, setNewDeckName] = useState("");
+
   const { user } = useContext(UserContext);
   const { hostGame } = useGames(null);
 
@@ -64,7 +90,6 @@ export default function SetUp() {
     total,
     loadSelectedCards,
     isLoading: selectedCardsLoading,
-    error: selectedCardsError,
     showMaxPlayersAlert,
     setShowMaxPlayersAlert,
   } = useSelectedCards(numberOfPlayers);
@@ -314,6 +339,55 @@ export default function SetUp() {
             message="Are you sure you want to start hosting a game with the current setup?"
           />
         </div>
+
+        <Fab
+          color="primary"
+          aria-label="add"
+          onClick={() => setCreateDeckOpen(true)}
+          sx={{ position: "fixed", bottom: 24, right: 24, zIndex: 30 }}
+        >
+          <AddIcon />
+        </Fab>
+
+        <Dialog open={createDeckOpen} onClose={() => setCreateDeckOpen(false)}>
+          <DialogTitle>Create New Deck</DialogTitle>
+          <DialogContent>
+            <TextField
+              autoFocus
+              margin="dense"
+              label="Deck Name"
+              fullWidth
+              value={newDeckName}
+              onChange={(e) => setNewDeckName(e.target.value)}
+            />
+          </DialogContent>
+          <DialogActions>
+            <IconButton onClick={() => setCreateDeckOpen(false)}>Cancel</IconButton>
+            <IconButton
+              color="primary"
+              onClick={async () => {
+                try {
+                  if (!newDeckName.trim()) return;
+                  await pbService.createDeck({
+                    name: newDeckName.trim(),
+                    owner: user.id,
+                    number_of_players: numberOfPlayers ?? 0,
+                    timer: timer ?? 300,
+                  });
+                  setCreateDeckOpen(false);
+                  setNewDeckName("");
+                  if (typeof refresh === "function") {
+                    await refresh();
+                  }
+                } catch (err) {
+                  console.error("Failed to create deck:", err);
+                }
+              }}
+            >
+              Create
+            </IconButton>
+          </DialogActions>
+        </Dialog>
       </div>
     </>
   );
