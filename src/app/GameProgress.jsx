@@ -25,17 +25,16 @@ import useGameState from "../hooks/useGameState";
 import GameAdmin from "../components/GameAdmin";
 
 export default function Game() {
-  const { lobbyId } = useParams();
+  const { gameId } = useParams();
   const { user } = useContext(UserContext);
   const [selectedPlayer, setSelectedPlayer] = useState(null);
+  const [saveMsg, setSaveMsg] = useState({ type: "", text: "" });
 
-  // Moderator workflow state (UI-only; persistence requires backend support)
   const [modModeEnabled, setModModeEnabled] = useState(false);
   const [modCardIndex, setModCardIndex] = useState(0);
-  const [modAssignments, setModAssignments] = useState({}); // { [roleTitleLower]: { holderId: string|null, targetId: string|null } }
+  const [modAssignments, setModAssignments] = useState({});
 
   const {
-    lobby,
     game,
     players,
     loading,
@@ -49,15 +48,17 @@ export default function Game() {
     currentActivePlayer,
     hasPlayerActed,
     getRoleActions,
+    submitNightEntry,
     submitAction,
-  } = useGameState(lobbyId, user);
+    actions,
+  } = useGameState(gameId, user);
 
   const handlePlayerSelect = (player) => {
     setSelectedPlayer(player);
   };
 
   const handleConfirmAction = async () => {
-    if (!selectedPlayer || !canAct) return;
+    if (!selectedPlayer || !canAct) {return;}
 
     try {
       await submitAction(selectedPlayer);
@@ -68,17 +69,13 @@ export default function Game() {
   };
 
   const isModerator = useMemo(() => {
-    // Best-effort moderator detection. If your lobby/game schema differs, adjust these checks.
-    if (!user) return false;
-    if (lobby?.moderator && user?.id && lobby.moderator === user.id) return true;
-    if (game?.moderator && user?.id && game.moderator === user.id) return true;
-    if (user?.role && String(user.role).toLowerCase() === "moderator") return true;
+    if (!user) {return false;}
+    if (game?.moderator && user?.id && game.moderator === user.id) {return true;}
+    if (user?.role && String(user.role).toLowerCase() === "moderator") {return true;}
     return false;
-  }, [user, lobby?.moderator, game?.moderator]);
+  }, [user, game?.moderator]);
 
   const rolesInGame = useMemo(() => {
-    // Derive a stable list of "cards" from the roles currently assigned to players.
-    // Sorted using the already-computed action order so moderators walk in night resolution order.
     const seen = new Set();
     const orderedRoles = [];
 
@@ -91,7 +88,6 @@ export default function Game() {
       }
     });
 
-    // Ensure "Villager" appears last if present (usually has no actionable targeting).
     const villagersIndex = orderedRoles.findIndex((r) => r.key === "villager");
     if (villagersIndex >= 0 && villagersIndex !== orderedRoles.length - 1) {
       const [villagerRole] = orderedRoles.splice(villagersIndex, 1);
@@ -128,6 +124,23 @@ export default function Game() {
     }));
   };
 
+  const saveCurrentCard = async () => {
+    if (!currentModRole) {return;}
+    const assignment = modAssignments[currentModRole.key];
+    if (!assignment?.holderId) {
+      setSaveMsg({ type: "warning", text: "Assign a holder before saving." });
+      return;
+    }
+    try {
+      await submitNightEntry(currentModRole.key, assignment.holderId, assignment.targetId);
+      setSaveMsg({ type: "success", text: `Saved ${currentModRole.title} entry.` });
+      setTimeout(() => setSaveMsg({ type: "", text: "" }), 2000);
+      modNextCard();
+    } catch {
+      setSaveMsg({ type: "error", text: "Failed to save entry." });
+    }
+  };
+
   const modNextCard = () => {
     setModCardIndex((i) => Math.min(i + 1, Math.max(rolesInGame.length - 1, 0)));
   };
@@ -139,10 +152,9 @@ export default function Game() {
   const modJumpToFirstIncomplete = () => {
     const idx = rolesInGame.findIndex((r) => {
       const a = modAssignments[r.key];
-      // Consider complete if holder chosen; target optional for roles that don't need it
       return !a?.holderId;
     });
-    if (idx >= 0) setModCardIndex(idx);
+    if (idx >= 0) {setModCardIndex(idx);}
   };
 
   const formatTime = (seconds) => {
@@ -152,13 +164,19 @@ export default function Game() {
   };
 
   const modProgress = useMemo(() => {
-    if (!rolesInGame.length) return { complete: 0, total: 0 };
+    if (!rolesInGame.length) {return { complete: 0, total: 0 };}
     const complete = rolesInGame.reduce((acc, r) => {
-      const a = modAssignments[r.key];
-      return acc + (a?.holderId ? 1 : 0);
+      const hasEntry = (actions || []).some(
+        (e) =>
+          e.phase === "night" &&
+          e.night_number === game?.current_night &&
+          String(e.role_key || "").toLowerCase() === r.key &&
+          !!e.holder,
+      );
+      return acc + (hasEntry ? 1 : 0);
     }, 0);
     return { complete, total: rolesInGame.length };
-  }, [rolesInGame, modAssignments]);
+  }, [rolesInGame, actions, game?.current_night]);
 
   if (loading) {
     return (
@@ -181,13 +199,11 @@ export default function Game() {
 
   return (
     <Box className="mx-auto max-w-4xl my-10" sx={{ px: 2 }}>
-      {/* Game Status Header */}
       <Paper elevation={3} sx={{ p: 4, mb: 3 }}>
         <Typography variant="h4" component="h1" gutterBottom>
-          {lobby?.name} - Night {game?.current_night || 1}
+          {game?.name} - Night {game?.current_night || 1}
         </Typography>
 
-        {/* Phase Information */}
         <Box sx={{ mb: 3 }}>
           <Typography variant="h6" gutterBottom>
             {phaseDescription}
@@ -209,7 +225,6 @@ export default function Game() {
 
         <Divider sx={{ my: 2 }} />
 
-        {/* Moderator: card-by-card assignment workflow */}
         {isModerator && (
           <Box sx={{ mb: 2 }}>
             <Stack direction="row" spacing={1} alignItems="center" justifyContent="space-between">
@@ -249,6 +264,7 @@ export default function Game() {
                         </Typography>
                         <Typography variant="body2" color="text.secondary">
                           Progress: {modProgress.complete}/{modProgress.total} cards assigned
+                          (saved)
                         </Typography>
                       </Box>
 
@@ -318,25 +334,48 @@ export default function Game() {
                       </FormControl>
                     </Stack>
 
-                    <Box sx={{ mt: 2 }}>
-                      <Alert severity="warning">
-                        This moderator entry is currently <strong>UI-only</strong> and does not get
-                        saved to the server yet. To persist it, the backend needs a place to store
-                        “card holder” and “target” per night/phase (e.g. a dedicated collection or
-                        writing to <code>games_actions</code> with a moderator actor).
-                      </Alert>
+                    <Box sx={{ mt: 2, display: "flex", alignItems: "center", gap: 2 }}>
+                      <Button variant="contained" color="primary" onClick={saveCurrentCard}>
+                        Save Entry
+                      </Button>
+                      {saveMsg.text && (
+                        <Chip
+                          label={saveMsg.text}
+                          color={
+                            saveMsg.type === "error"
+                              ? "error"
+                              : saveMsg.type === "warning"
+                                ? "warning"
+                                : "success"
+                          }
+                          size="small"
+                        />
+                      )}
                     </Box>
 
                     <Divider sx={{ my: 2 }} />
 
                     <Typography variant="subtitle2" gutterBottom>
-                      Summary (this night)
+                      Summary (Night {game?.current_night || 1})
                     </Typography>
                     <List dense>
                       {rolesInGame.map((r) => {
-                        const a = modAssignments[r.key];
-                        const holder = a?.holderId ? getPlayerName(a.holderId) : "—";
-                        const target = a?.targetId ? getPlayerName(a.targetId) : "—";
+                        const savedEntry = (actions || []).find(
+                          (e) =>
+                            e.phase === "night" &&
+                            e.night_number === game?.current_night &&
+                            String(e.role_key || "").toLowerCase() === r.key,
+                        );
+                        const holder = savedEntry?.holder
+                          ? getPlayerName(savedEntry.holder)
+                          : modAssignments[r.key]?.holderId
+                            ? getPlayerName(modAssignments[r.key].holderId)
+                            : "—";
+                        const target = savedEntry?.target
+                          ? getPlayerName(savedEntry.target)
+                          : modAssignments[r.key]?.targetId
+                            ? getPlayerName(modAssignments[r.key].targetId)
+                            : "—";
                         return (
                           <ListItem key={r.key} divider>
                             <ListItemText
@@ -345,8 +384,20 @@ export default function Game() {
                             />
                             <Chip
                               size="small"
-                              label={a?.holderId ? "Assigned" : "Unassigned"}
-                              color={a?.holderId ? "success" : "default"}
+                              label={
+                                savedEntry
+                                  ? "Saved"
+                                  : modAssignments[r.key]?.holderId
+                                    ? "Un-saved"
+                                    : "Unassigned"
+                              }
+                              color={
+                                savedEntry
+                                  ? "success"
+                                  : modAssignments[r.key]?.holderId
+                                    ? "warning"
+                                    : "default"
+                              }
                             />
                           </ListItem>
                         );
@@ -359,7 +410,6 @@ export default function Game() {
           </Box>
         )}
 
-        {/* Player Role Info */}
         {currentPlayer && (
           <Box>
             <Typography variant="h6">Your Role</Typography>
@@ -379,7 +429,6 @@ export default function Game() {
         )}
       </Paper>
 
-      {/* Night Phase Action Order */}
       {game?.phase === "night" && (
         <Paper elevation={3} sx={{ p: 3, mb: 3 }}>
           <Typography variant="h5" component="h2" mb={2}>
@@ -408,7 +457,6 @@ export default function Game() {
         </Paper>
       )}
 
-      {/* Player Selection */}
       {canAct && (
         <Paper elevation={3} sx={{ p: 3 }}>
           <Typography variant="h5" component="h2" mb={2}>
@@ -454,7 +502,6 @@ export default function Game() {
         </Paper>
       )}
 
-      {/* Observer Mode */}
       {!canAct && game?.phase !== "waiting" && (
         <Paper elevation={3} sx={{ p: 3 }}>
           <Typography variant="h5" component="h2" mb={2}>
@@ -470,10 +517,8 @@ export default function Game() {
         </Paper>
       )}
 
-      {/* Game Admin Panel (for development/testing) */}
-      <GameAdmin lobbyId={lobbyId} user={user} />
+      <GameAdmin gameId={gameId} user={user} />
 
-      {/* Game Actions (for testing/admin) */}
       {game?.phase === "waiting" && (
         <Paper elevation={3} sx={{ p: 3 }}>
           <Typography variant="h5" component="h2" mb={2}>

@@ -4,14 +4,14 @@ routerAdd("POST", "/api/heartbeat", (e) => {
 
   try {
     let player = $app.findFirstRecordByFilter(
-      "lobby_players",
-      "name = {:playerName} && lobby = {:lobbyId}",
+      "game_players",
+      "player = {:playerName} && game = {:lobbyId}",
       { playerName: playerName, lobbyId: lobbyId },
     );
     if (!player) throw new Error("Player not found");
 
     player.set("updated", new Date().toISOString());
-    player.save(record);
+    $app.save(player);
     return { status: 200, body: "Heartbeat received" };
   } catch (error) {
     console.error(error);

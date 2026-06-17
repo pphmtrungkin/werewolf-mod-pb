@@ -1,22 +1,25 @@
-import { createContext, useCallback, useState } from 'react';
+import { createContext, useCallback, useState } from "react";
 
 export const ErrorContext = createContext({});
 
 export const ErrorProvider = ({ children }) => {
   const [errors, setErrors] = useState([]);
 
-  const addError = useCallback((message, severity = 'error', duration = 5000) => {
+  const removeError = useCallback((id) => {
+    setErrors((prev) => prev.filter((error) => error.id !== id));
+  }, []);
+
+  const addError = useCallback((message, severity = "error", duration = 5000) => {
     const id = Date.now();
     const error = {
       id,
       message,
-      severity, // 'error', 'warning', 'info', 'success'
+      severity,
       timestamp: Date.now(),
     };
 
     setErrors((prev) => [...prev, error]);
 
-    // Auto-remove after duration
     if (duration > 0) {
       setTimeout(() => {
         removeError(id);
@@ -24,11 +27,7 @@ export const ErrorProvider = ({ children }) => {
     }
 
     return id;
-  }, []);
-
-  const removeError = useCallback((id) => {
-    setErrors((prev) => prev.filter((error) => error.id !== id));
-  }, []);
+  }, [removeError]);
 
   const clearErrors = useCallback(() => {
     setErrors([]);

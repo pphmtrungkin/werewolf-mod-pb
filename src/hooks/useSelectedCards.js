@@ -1,6 +1,5 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback } from "react";
 import pbService from "../services/pbService";
-import useDecks from "./useDecks";
 
 /**
  * Hook to manage card selection, count, and total score
@@ -37,25 +36,18 @@ export function useSelectedCards(numberOfPlayers = 0) {
       const limit = card.card_limit > numberOfPlayers ? numberOfPlayers : card.card_limit;
 
       if (totalSelectedCards >= numberOfPlayers) {
-        // Only allow unselecting cards because max players reached
         if (cardCount > 0) {
-          // Unselect the card
           handleCardUnSelect(card);
         } else {
-          // Show alert when trying to add more cards at max players
           setShowMaxPlayersAlert(true);
-          // Auto-hide alert after 3 seconds
           setTimeout(() => setShowMaxPlayersAlert(false), 3000);
         }
       } else {
-        // Allow selecting and unselecting cards
         if (cardCount < limit) {
           if (removedCards.find((removedCard) => removedCard.id === card.id)) {
-            // If the card was previously removed, restore it
             setRemovedCards((prev) => prev.filter((removedCard) => removedCard.id !== card.id));
             setLoadedSelectedCards((prev) => [...prev, card]);
           } else {
-            // Otherwise, add it to selected cards
             setSelectedCards((prev) => [...prev, card]);
           }
           setTotal((prev) => prev + card.score);
@@ -64,17 +56,16 @@ export function useSelectedCards(numberOfPlayers = 0) {
         }
       }
     },
-    [selectedCards, numberOfPlayers, getCardCount],
+    [selectedCards, numberOfPlayers, getCardCount, handleCardUnSelect, loadedSelectedCards, removedCards],
   );
 
   const handleCardUnSelect = useCallback(
     (card) => {
       const cardCount = getCardCount(card);
       try {
-        // Check if the card exists in loadedSelectedCards
         const isInDatabase = loadedSelectedCards.find((loadedCard) => loadedCard.id === card.id);
         if (isInDatabase) {
-          let numberOfCards = loadedSelectedCards.filter(
+          const numberOfCards = loadedSelectedCards.filter(
             (loadedCard) => loadedCard.id === card.id,
           ).length;
           setRemovedCards((prev) => [...prev, ...Array(numberOfCards).fill(card)]);
@@ -96,7 +87,7 @@ export function useSelectedCards(numberOfPlayers = 0) {
         console.error("Error unselecting card:", err);
       }
     },
-    [selectedCards, loadedSelectedCards, removedCards],
+    [selectedCards, loadedSelectedCards, getCardCount],
   );
 
   /**
@@ -104,7 +95,7 @@ export function useSelectedCards(numberOfPlayers = 0) {
    * @param {string} deckId
    */
   const loadSelectedCards = useCallback(async (deckId) => {
-    if (!deckId) return;
+    if (!deckId) {return;}
 
     setIsLoading(true);
     try {
@@ -124,11 +115,9 @@ export function useSelectedCards(numberOfPlayers = 0) {
   // Then clear both arrays
   const saveSelectedCards = useCallback(
     async (deckId, deckInfo) => {
-      if (!deckId) return;
+      if (!deckId) {return;}
 
       setIsLoading(true);
-      console.log("Saving selected cards");
-      console.log("Deck ID and info:", deckId, deckInfo);
       try {
         // Remove cards
         for (const card of removedCards) {

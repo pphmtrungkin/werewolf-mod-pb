@@ -100,16 +100,16 @@ export default function SetUp() {
       setTimer(selectedDeck.timer || 300);
       loadSelectedCards(selectedDeck.id);
     }
-  }, [selectedDeck]);
+  }, [selectedDeck, setNumberOfPlayers, setTimer, loadSelectedCards]);
 
   useEffect(() => {
-    if (!sides) return;
+    if (!sides) {return;}
     setSelectedSideButton(sides[0]?.id || null);
   }, [sides]);
 
   // Add useEffect to filter cards when side is selected or cards change
   useEffect(() => {
-    if (!cards) return;
+    if (!cards) {return;}
 
     const filtered = cards.filter((card) => card.side === selectedSideButton);
     setFilteredCards(filtered);
@@ -145,7 +145,7 @@ export default function SetUp() {
     if (!user) {
       navigate("/auth/login");
     }
-  }, [user]);
+  }, [user, navigate]);
 
   return (
     <>
@@ -367,7 +367,7 @@ export default function SetUp() {
               color="primary"
               onClick={async () => {
                 try {
-                  if (!newDeckName.trim()) return;
+                  if (!newDeckName.trim()) {return;}
                   await pbService.createDeck({
                     name: newDeckName.trim(),
                     owner: user.id,

@@ -34,12 +34,11 @@ import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 // When the user closes the tab or navigates away we should remove them from the game_players
 import useJoinedPlayers from "../hooks/useJoinedPlayers";
 import AlertDialog from "../components/AlertDialog";
-import useSelectedCards from "../hooks/useSelectedCards";
 
 export default function Game() {
   const { gameId } = useParams();
-  const { fetchGame, game, loading, error, leaveGame } = useGames(gameId);
-  const { joinedPlayers, loading: playersLoading } = useJoinedPlayers(gameId);
+  const { game, loading, error, leaveGame } = useGames(gameId);
+  const { loading: playersLoading } = useJoinedPlayers(gameId);
   const { user } = useContext(UserContext);
   const navigate = useNavigate();
   const [players, setPlayers] = useState([]);
@@ -61,23 +60,24 @@ export default function Game() {
 
       if (game.status === "in_progress") {
         setGameStarted(true);
+        setStartAlertOpen(true);
       }
     }
   }, [game, user]);
 
   // realtime subscription to game_players
   useEffect(() => {
-    if (!gameId) return;
+    if (!gameId) {return;}
     let mounted = true;
 
     // Load initial list of joined players
     const loadInitial = async () => {
       try {
         const items = await pbService.getGamePlayers(gameId, { sort: "created" });
-        if (mounted) setPlayers(items || []);
+        if (mounted) {setPlayers(items || []);}
       } catch (err) {
         console.error("Failed to load players:", err);
-        if (mounted) setSubError(err.message || "Failed to load players");
+        if (mounted) {setSubError(err.message || "Failed to load players");}
       }
     };
 
@@ -88,14 +88,14 @@ export default function Game() {
     // we still filter by gameId on the client.
     pbService
       .subscribeGamePlayers((e) => {
-        if (!mounted) return;
+        if (!mounted) {return;}
         const rec = e?.record;
-        if (!rec || rec.game !== gameId) return;
+        if (!rec || rec.game !== gameId) {return;}
 
         if (e.action === "create") {
           setPlayers((prev) => {
             // Avoid duplicates
-            if (prev.some((p) => p.id === rec.id)) return prev;
+            if (prev.some((p) => p.id === rec.id)) {return prev;}
             return [...prev, rec];
           });
         } else if (e.action === "update") {
@@ -106,28 +106,27 @@ export default function Game() {
       })
       .catch((err) => {
         console.error("Realtime subscription failed:", err);
-        if (mounted) setSubError(err.message || "Realtime subscription failed");
+        if (mounted) {setSubError(err.message || "Realtime subscription failed");}
       });
 
     // unsubscribe
     return () => {
       mounted = false;
-      try {
-        pbService.unsubscribeGameActions();
-      } catch (_) {}
+      pbService.unsubscribeGamePlayers();
     };
   }, [gameId]);
 
   useEffect(() => {
-    if (!gameStarted) return;
+    if (!gameStarted) {return;}
 
-    if (!isModerator) {
-      const timeout = setTimeout(() => {
-        navigate(`/game/${gameId}`);
-      }, 4000);
+    const timeout = setTimeout(
+      () => {
+        navigate(`/game/${gameId}/play`);
+      },
+      isModerator ? 500 : 4000,
+    );
 
-      return () => clearTimeout(timeout);
-    }
+    return () => clearTimeout(timeout);
   }, [gameStarted, isModerator, gameId, navigate]);
 
   const handleAddManualPlayer = async () => {
@@ -138,7 +137,7 @@ export default function Game() {
     try {
       setAddError("");
       const ipPrefix = localStorage.getItem("lanPrefix") || "192.168.1.";
-      if (game.expand.deck.number_of_players == players.length) {
+      if (game.expand.deck.number_of_players === players.length) {
         throw new Error("Cannot add more players. game is full.");
       }
       await pbService.createGamePlayer({
@@ -158,7 +157,7 @@ export default function Game() {
   };
 
   const handleRemovePlayer = async (playerId) => {
-    if (!isModerator) return;
+    if (!isModerator) {return;}
     try {
       await pbService.deleteGamePlayer(playerId);
     } catch (err) {
@@ -188,17 +187,13 @@ export default function Game() {
     }
   };
 
-  // Moderator starts the game: update game status so all clients see it
   const handleStartGame = async () => {
-    if (!isModerator) return;
+    if (!isModerator) {return;}
 
     try {
-      await pbService.updateGame(gameId, {
-        status: "in_progress",
-      });
-
-      // Moderator navigates immediately
-      navigate(`/game/${gameId}`);
+      await pbService.updateGame(gameId, { status: "in_progress" });
+      await pbService.startNightPhase(gameId, 1);
+      navigate(`/game/${gameId}/play`);
     } catch (err) {
       console.error("Failed to start game:", err);
     }
@@ -222,11 +217,11 @@ export default function Game() {
 
   return (
     <Box className="mx-auto max-w-4xl my-10" sx={{ px: 2 }}>
-      {/* Game start alert banner */}
       {gameStarted && startAlertOpen && (
         <Box mb={2}>
           <Alert severity="info" onClose={() => setStartAlertOpen(false)}>
-            The moderator has started the game! Redirecting...
+            The moderator has started the game!
+            {!isModerator && " Redirecting to game view..."}
           </Alert>
         </Box>
       )}

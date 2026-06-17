@@ -1,6 +1,6 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import UserContext from './UserContext';
-import pbService from '../services/pbService';
+import { createContext, useContext, useEffect, useState } from "react";
+import UserContext from "./UserContext";
+import pbService from "../services/pbService";
 
 // Create a context
 export const DeckContext = createContext();
@@ -12,7 +12,6 @@ export const DeckProvider = ({ children }) => {
   const [selectedCardsLoading, setSelectedCardsLoading] = useState(true);
   const { user } = useContext(UserContext);
   const [deckId, setDeckId] = useState(0);
-  const [decks, setDecks] = useState([]);
   const [selectedCards, setSelectedCards] = useState([]);
   const [timer, setTimer] = useState(0);
 
@@ -21,12 +20,11 @@ export const DeckProvider = ({ children }) => {
       if (user && user.id) {
         try {
           const decks = await pbService.getDeck(user.id);
-          setDecks(decks || []);
           if (decks && decks.length > 0) {
             setDeckId(decks[0].id);
           }
         } catch (error) {
-          console.error('Error fetching decks:', error);
+          console.error("Error fetching decks:", error);
         }
       }
     }
@@ -38,7 +36,7 @@ export const DeckProvider = ({ children }) => {
           const cards = await pbService.getSelectedCards(deckId);
           setSelectedCards(cards || []);
         } catch (error) {
-          console.error('Error fetching selected cards:', error);
+          console.error("Error fetching selected cards:", error);
         } finally {
           setSelectedCardsLoading(false);
         }

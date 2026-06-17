@@ -113,7 +113,7 @@ export async function updateUserProfile(userId, data) {
 
 export async function getWaitingGames() {
   return pb.collection("games").getFullList({
-    filter: 'status = "waiting"',
+    filter: "status = \"waiting\"",
   });
 }
 
@@ -401,7 +401,7 @@ export async function advanceToNextNight(gameId, currentNight) {
   return startNightPhase(gameId, (currentNight || 0) + 1);
 }
 
-export async function endGame(gameId, winner) {
+export async function endGame(gameId, _winner) {
   return pb.collection("games").update(gameId, {
     phase: "completed",
 
@@ -420,10 +420,6 @@ export function getFileUrl(collectionId, recordId, filename) {
 }
 
 export function updateDeck(deckId, data) {
-  console.log("Updating deck");
-
-  console.log("Deck ID and info:", deckId, data);
-
   return pb.collection("decks").update(deckId, data);
 }
 

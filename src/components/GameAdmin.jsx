@@ -1,4 +1,3 @@
-import React from "react";
 import {
   Box,
   Paper,
@@ -13,12 +12,11 @@ import {
 } from "@mui/material";
 import useGameState from "../hooks/useGameState";
 
-export default function GameAdmin({ lobbyId, user }) {
+export default function GameAdmin({ gameId, user }) {
   const {
-    lobby,
     game,
     players,
-    actions, // now moderator_entries (exposed under old name by useGameState)
+    actions,
     loading,
     error,
     phaseDescription,
@@ -28,7 +26,7 @@ export default function GameAdmin({ lobbyId, user }) {
     hasPlayerActed,
     startGame,
     advancePhase,
-  } = useGameState(lobbyId, user);
+  } = useGameState(gameId, user);
 
   if (loading) {
     return (
@@ -69,7 +67,7 @@ export default function GameAdmin({ lobbyId, user }) {
   };
 
   const getPhaseEntries = () => {
-    if (!game) return { nightEntries: [], votingEntries: [] };
+    if (!game) {return { nightEntries: [], votingEntries: [] };}
 
     const nightEntries = (actions || []).filter(
       (e) => e.phase === "night" && e.night_number === game.current_night,
@@ -81,10 +79,10 @@ export default function GameAdmin({ lobbyId, user }) {
     return { nightEntries, votingEntries };
   };
 
-  const { nightEntries, votingEntries } = getPhaseEntries();
+  const { votingEntries } = getPhaseEntries();
 
   const allNightEntriesComplete = () => {
-    if (game?.phase !== "night") return false;
+    if (game?.phase !== "night") {return false;}
 
     const playersWithActions = playersInActionOrder.filter((player) => {
       // For simplicity, assume all players with non-villager roles have night actions
@@ -98,7 +96,7 @@ export default function GameAdmin({ lobbyId, user }) {
   };
 
   const allVotingComplete = () => {
-    if (game?.phase !== "voting") return false;
+    if (game?.phase !== "voting") {return false;}
 
     // useGameState.hasPlayerActed() for voting checks for a vote entry per holder (voter)
     return players.every((player) => hasPlayerActed(player.id, "voting", game.current_night));
@@ -107,8 +105,8 @@ export default function GameAdmin({ lobbyId, user }) {
   const getPlayerName = (id) => players.find((p) => p.id === id)?.player || "Unknown";
 
   const getRoleLabel = (roleKey) => {
-    if (!roleKey) return "Unknown";
-    if (String(roleKey).toLowerCase() === "vote") return "Vote";
+    if (!roleKey) {return "Unknown";}
+    if (String(roleKey).toLowerCase() === "vote") {return "Vote";}
     return roleKey;
   };
 

@@ -41,13 +41,13 @@ const JoinGame = () => {
       try {
         setLoading(true);
         const items = await pbService.getWaitingGames();
-        if (!mounted) return;
+        if (!mounted) {return;}
         setLocalGames(items || []);
       } catch (err) {
         console.error("Error fetching local games", err);
-        if (mounted) setLocalGames([]);
+        if (mounted) {setLocalGames([]);}
       } finally {
-        if (mounted) setLoading(false);
+        if (mounted) {setLoading(false);}
       }
     };
 
@@ -76,7 +76,7 @@ const JoinGame = () => {
   };
 
   const handleJoinGame = async () => {
-    if (!selectedGame) return;
+    if (!selectedGame) {return;}
     if (!authCode) {
       setAuthError("Please enter the game code.");
       return;
@@ -89,9 +89,6 @@ const JoinGame = () => {
     try {
       setIsJoining(true);
       setAuthError("");
-      if (user) {
-        console.log("User:", user);
-      }
       const finalUsername = user ? user.name : name;
 
       const result = await joinGame(selectedGame.id, authCode, finalUsername);

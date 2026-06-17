@@ -1,6 +1,6 @@
-import { useContext } from 'react';
-import { Snackbar, Alert } from '@mui/material';
-import ErrorContext from './ErrorContext';
+import { useContext } from "react";
+import { Snackbar, Alert } from "@mui/material";
+import ErrorContext from "./ErrorContext";
 
 const Toast = () => {
   const { errors, removeError } = useContext(ErrorContext);
@@ -13,12 +13,12 @@ const Toast = () => {
           open={true}
           autoHideDuration={5000}
           onClose={() => removeError(error.id)}
-          anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+          anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
         >
           <Alert
             onClose={() => removeError(error.id)}
             severity={error.severity}
-            sx={{ width: '100%' }}
+            sx={{ width: "100%" }}
           >
             {error.message}
           </Alert>

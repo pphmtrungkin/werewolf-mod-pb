@@ -1,4 +1,3 @@
-import React from "react";
 import ReactDOM from "react-dom/client";
 import "../style.css";
 import { createBrowserRouter, RouterProvider } from "react-router";
@@ -10,7 +9,6 @@ import Nav from "./components/Nav";
 import Account from "./app/Account";
 import ErrorPage from "./components/ErrorPage";
 import GameProgress from "./app/GameProgress";
-import Players from "./app/Players";
 import { UserProvider } from "./components/UserContext";
 import AuthLayout from "./app/auth/AuthLayout";
 import { ThemeProvider } from "./components/ThemeContext";
@@ -45,16 +43,6 @@ const router = createBrowserRouter([
     ],
   },
   {
-    path: "/players",
-    element: <Players />,
-    children: [
-      {
-        path: "",
-        element: <Nav />,
-      },
-    ],
-  },
-  {
     path: "/account",
     Component: Nav,
     children: [
@@ -81,6 +69,10 @@ const router = createBrowserRouter([
       {
         path: "",
         element: <Game />,
+      },
+      {
+        path: "play",
+        element: <GameProgress />,
       },
     ],
   },

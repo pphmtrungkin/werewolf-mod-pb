@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from 'react';
-import pbService from '../services/pbService';
+import { useCallback, useEffect, useState } from "react";
+import pbService from "../services/pbService";
 
 export function useSides() {
   const [sides, setSides] = useState([]);

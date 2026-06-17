@@ -1,14 +1,21 @@
 import { useState, useContext } from "react";
 import { useNavigate } from "react-router";
 import UserContext from "../../components/UserContext";
-import { TextField, IconButton, FormControlLabel, Checkbox, Button, InputAdornment, Box, Typography, Link } from "@mui/material";
+import {
+  TextField,
+  IconButton,
+  Button,
+  InputAdornment,
+  Box,
+  Typography,
+  Link,
+} from "@mui/material";
 import { Visibility, VisibilityOff } from "@mui/icons-material";
 
 const SignUp = () => {
-  
   //Set up navigate
   const navigate = useNavigate();
-  
+
   //Declare variables
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
@@ -17,12 +24,12 @@ const SignUp = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [confirmPass, setConfirmPass] = useState("");
 
-  const {register, loading, setLoading} = useContext(UserContext);
+  const { register, loading, setLoading } = useContext(UserContext);
 
   //Handle sign up
   const handleSignUp = async (e) => {
     e.preventDefault();
-    if(password !== confirmPass){
+    if (password !== confirmPass) {
       alert("Passwords do not match");
     } else {
       const authData = await register(email, password, username, full_name);
@@ -41,30 +48,30 @@ const SignUp = () => {
       <Box className="flex justify-center">
         <img
           width={220}
-          height='auto'
+          height="auto"
           src="https://img.freepik.com/premium-vector/silhouette-wolf-howling-full-moon-vector-illustration-pagan-totem-wiccan-familiar-spirit-art_726692-254.jpg"
           className="max-x-full mx-auto object-cover rounded-full mb-4"
           alt="Werewolf Logo"
         />
       </Box>
-      
-      <Typography 
-        variant="h4" 
+
+      <Typography
+        variant="h4"
         className="text-center font-semibold uppercase tracking-wide"
         sx={{ mb: 3 }}
       >
         Sign Up
       </Typography>
 
-      <Box 
-        component="form" 
+      <Box
+        component="form"
         onSubmit={handleSignUp}
         sx={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
           gap: 2,
-          px: 2
+          px: 2,
         }}
       >
         <TextField
@@ -75,7 +82,7 @@ const SignUp = () => {
           onChange={(e) => setEmail(e.target.value)}
           required
           fullWidth
-          sx={{ maxWidth: '500px' }}
+          sx={{ maxWidth: "500px" }}
           variant="outlined"
         />
 
@@ -86,7 +93,7 @@ const SignUp = () => {
           onChange={(e) => setUsername(e.target.value)}
           required
           fullWidth
-          sx={{ maxWidth: '500px' }}
+          sx={{ maxWidth: "500px" }}
           variant="outlined"
         />
 
@@ -97,7 +104,7 @@ const SignUp = () => {
           onChange={(e) => setFullName(e.target.value)}
           required
           fullWidth
-          sx={{ maxWidth: '500px' }}
+          sx={{ maxWidth: "500px" }}
           variant="outlined"
         />
 
@@ -109,19 +116,16 @@ const SignUp = () => {
           onChange={(e) => setPassword(e.target.value)}
           required
           fullWidth
-          sx={{ maxWidth: '500px' }}
+          sx={{ maxWidth: "500px" }}
           variant="outlined"
           InputProps={{
             endAdornment: (
               <InputAdornment position="end">
-                <IconButton
-                  onClick={() => setShowPassword(!showPassword)}
-                  edge="end"
-                >
+                <IconButton onClick={() => setShowPassword(!showPassword)} edge="end">
                   {showPassword ? <VisibilityOff /> : <Visibility />}
                 </IconButton>
               </InputAdornment>
-            )
+            ),
           }}
         />
 
@@ -133,19 +137,16 @@ const SignUp = () => {
           onChange={(e) => setConfirmPass(e.target.value)}
           required
           fullWidth
-          sx={{ maxWidth: '500px' }}
+          sx={{ maxWidth: "500px" }}
           variant="outlined"
           InputProps={{
             endAdornment: (
               <InputAdornment position="end">
-                <IconButton
-                  onClick={() => setShowPassword(!showPassword)}
-                  edge="end"
-                >
+                <IconButton onClick={() => setShowPassword(!showPassword)} edge="end">
                   {showPassword ? <VisibilityOff /> : <Visibility />}
                 </IconButton>
               </InputAdornment>
-            )
+            ),
           }}
         />
 
@@ -154,27 +155,27 @@ const SignUp = () => {
           variant="contained"
           disabled={loading}
           fullWidth
-          sx={{ 
-            maxWidth: '500px',
+          sx={{
+            maxWidth: "500px",
             py: 1.5,
-            fontSize: '1.1rem',
-            fontWeight: 'bold',
-            textTransform: 'uppercase',
-            borderRadius: '24px',
-            mt: 2
+            fontSize: "1.1rem",
+            fontWeight: "bold",
+            textTransform: "uppercase",
+            borderRadius: "24px",
+            mt: 2,
           }}
         >
-          {loading ? 'Creating Account...' : 'Sign Up'}
+          {loading ? "Creating Account..." : "Sign Up"}
         </Button>
       </Box>
 
-      <Box 
-        sx={{ 
-          display: 'flex', 
-          justifyContent: 'center', 
-          alignItems: 'center', 
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
           gap: 1,
-          mt: 3
+          mt: 3,
         }}
       >
         <Typography variant="body1" color="text.secondary">
@@ -184,10 +185,10 @@ const SignUp = () => {
           component="button"
           variant="body1"
           onClick={() => navigate("/auth/login")}
-          sx={{ 
-            cursor: 'pointer',
-            textDecoration: 'underline',
-            fontWeight: 'bold'
+          sx={{
+            cursor: "pointer",
+            textDecoration: "underline",
+            fontWeight: "bold",
           }}
         >
           Login

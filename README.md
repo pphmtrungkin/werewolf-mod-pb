@@ -20,11 +20,13 @@ How to Run:
 - Open your browser and navigate to http://localhost:5173
 
 ## Features
-Completed
-- Create a set of roles for an amount of players
-Oncoming
-- Create and manage a game of werewolf
-- Manage players and their roles
-- Manage the game's settings
-- Manage the game's progress
-- Manage the game's results
+- Deck builder — create role sets for any player count
+- Host/join games via room codes
+- Real-time player lobby with connectivity status
+- In-progress game management (moderator tools):
+  - Night phase: assign holder + target per role
+  - Day phase: discussion timer
+  - Voting phase: 5-minute countdown, record votes
+  - Phase advancement: night → day → voting → next night
+- Player elimination tracking
+- PocketBase backend with custom API endpoints

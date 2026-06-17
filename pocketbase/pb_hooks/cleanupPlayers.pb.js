@@ -19,7 +19,7 @@ cronAdd("cleanup-players", "*/1 * * * *", async () => {
   let stalePlayers = null;
 
   try {
-    stalePlayers = $app.findRecordsByFilter("lobby_players", `updated < "${cutoff}"`, 100, 0);
+    stalePlayers = $app.findRecordsByFilter("game_players", `updated < "${cutoff}"`, 100, 0);
   } catch (error) {
     console.error("Error fetching stale players:", error);
   }

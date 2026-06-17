@@ -17,7 +17,6 @@ export const UserProvider = ({ children }) => {
   const [user, setUser] = useState(pb.authStore.model || null);
   const [avatar, setAvatar] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
 
   useEffect(() => {
     return pb.authStore.onChange(() => {
@@ -28,7 +27,6 @@ export const UserProvider = ({ children }) => {
 
   useEffect(() => {
     if (user && user.avatar) {
-      console.log(user);
       const url = `${pb.baseUrl}/api/files/${user.collectionId}/${user.id}/${user.avatar}`;
       setAvatar(url);
     } else {
@@ -77,16 +75,15 @@ export const UserProvider = ({ children }) => {
   }, []);
 
   const verifyOTP = useCallback(async (mfaId, otpId, code) => {
-    console.log("Verify: " + mfaId + ", " + otpId + ", " + code);
     setLoading(true);
     try {
       const authData = await pbService.authWithOTP(otpId, code, { mfaId: mfaId });
       const url = authData.record.avatar
         ? pbService.getFileUrl(
-            authData.record.collectionId,
-            authData.record.id,
-            authData.record.avatar,
-          )
+          authData.record.collectionId,
+          authData.record.id,
+          authData.record.avatar,
+        )
         : null;
 
       setUser(authData.record);
@@ -109,7 +106,7 @@ export const UserProvider = ({ children }) => {
   }, []);
 
   const refreshSession = useCallback(async () => {
-    if (!pb.authStore.isValid || !token) return;
+    if (!pb.authStore.isValid || !token) {return;}
     try {
       const decoded = jwtDecode(token);
       const tokenExpirationInSeconds = decoded.exp;

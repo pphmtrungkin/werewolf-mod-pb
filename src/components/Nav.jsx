@@ -1,8 +1,8 @@
-import { useState, useEffect, useContext } from "react";
+import { useContext } from "react";
 import StyleIcon from "@mui/icons-material/Style";
-import Brightness4Icon from '@mui/icons-material/Brightness4';
-import Brightness7Icon from '@mui/icons-material/Brightness7';
-import { Tooltip } from '@mui/material';
+import Brightness4Icon from "@mui/icons-material/Brightness4";
+import Brightness7Icon from "@mui/icons-material/Brightness7";
+import { Tooltip } from "@mui/material";
 import { useNavigate } from "react-router";
 import { UserContext } from "./UserContext";
 import ThemeContext from "./ThemeContext";
@@ -41,7 +41,7 @@ const Nav = () => {
     <div>
       <div
         className="fixed top-0 w-screen min-h-20 z-10 flex items-center justify-between flex-wrap px-40 py-4"
-        style={{ backgroundColor: 'var(--secondary)' }}
+        style={{ backgroundColor: "var(--secondary)" }}
       >
         <div className="px-2">
           <Tooltip title="Go to Setup"> 
@@ -53,15 +53,15 @@ const Nav = () => {
                 ":hover": {
                   scale: 1.2,
                   transition: "scale fadeIn",
-                }
+                },
               }}
             >
-              <StyleIcon style={{ color: 'var(--text)' }} fontSize="large" />
+              <StyleIcon style={{ color: "var(--text)" }} fontSize="large" />
             </IconButton>
           </Tooltip>
         </div>
         <div className="flex items-center gap-4">
-          <Tooltip title={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}>
+          <Tooltip title={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}>
             <IconButton onClick={toggleTheme} size="large" color="inherit">
               {isDarkMode ? <Brightness7Icon /> : <Brightness4Icon />}
             </IconButton>
@@ -74,7 +74,7 @@ const Nav = () => {
               }
             }}
             className="flex flex-row gap-x-2 items-center transition hover:scale-110 py-2 px-4 rounded-full cursor-pointer"
-            style={{ backgroundColor: 'var(--background)', color: 'var(--text)' }}
+            style={{ backgroundColor: "var(--background)", color: "var(--text)" }}
           >
             {loading ? (
               <Spinner />
@@ -98,8 +98,8 @@ const Nav = () => {
                     </svg>
                   )}
                 </span>
-                <p className="text-base font-semibold" style={{ color: 'var(--text)' }}>
-                  {user && user.name ? user.name : 'Account'}
+                <p className="text-base font-semibold" style={{ color: "var(--text)" }}>
+                  {user && user.name ? user.name : "Account"}
                 </p>
               </>
             )}

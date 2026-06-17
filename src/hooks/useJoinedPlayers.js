@@ -1,13 +1,6 @@
 import { useState, useEffect } from "react";
-import pb from "../pocketbase";
+import pbService from "../services/pbService";
 
-/**
- * useJoinedPlayers
- * Fetches the list of joined players for a given game via the game_players collection.
- *
- * @param {string} gameId - The ID of the game to fetch players for.
- * @returns {{ joinedPlayers: Array, loading: boolean, error: string|null }}
- */
 const useJoinedPlayers = (gameId) => {
   const [joinedPlayers, setJoinedPlayers] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -29,12 +22,9 @@ const useJoinedPlayers = (gameId) => {
         setLoading(true);
         setError(null);
 
-        const items = await pb.collection("game_players").getFullList({
-          filter: `game = "${gameId}"`,
-          expand: "player",
-        });
+        const items = await pbService.getGamePlayers(gameId);
 
-        if (!mounted) return;
+        if (!mounted) {return;}
         setJoinedPlayers(items || []);
       } catch (err) {
         console.error("Error fetching joined players", err);
@@ -45,7 +35,7 @@ const useJoinedPlayers = (gameId) => {
           );
         }
       } finally {
-        if (mounted) setLoading(false);
+        if (mounted) {setLoading(false);}
       }
     };
 

@@ -1,12 +1,11 @@
-import React, { useEffect, useRef, useState, useContext } from "react";
-import { Outlet } from "react-router";
+import { useEffect, useRef, useState, useContext } from "react";
 import { useNavigate } from "react-router";
 import pb from "../pocketbase";
 import pbService from "../services/pbService";
 import { UserContext } from "../components/UserContext";
-import { Switch, Tooltip, FormControlLabel } from "@mui/material";
-import { Typography, Box, Tabs, Tab } from "@mui/material";
-import PropTypes from 'prop-types';
+import { Switch, FormControlLabel } from "@mui/material";
+import { Box, Tabs, Tab } from "@mui/material";
+import PropTypes from "prop-types";
 
 function TabPanel(props) {
   const { children, value, index, ...other } = props;
@@ -19,11 +18,7 @@ function TabPanel(props) {
       aria-labelledby={`vertical-tab-${index}`}
       {...other}
     >
-      {value === index && (
-        <Box sx={{ p: 3 }}>
-          {children}
-        </Box>
-      )}
+      {value === index && <Box sx={{ p: 3 }}>{children}</Box>}
     </div>
   );
 }
@@ -37,7 +32,7 @@ TabPanel.propTypes = {
 function a11yProps(index) {
   return {
     id: `vertical-tab-${index}`,
-    'aria-controls': `vertical-tabpanel-${index}`,
+    "aria-controls": `vertical-tabpanel-${index}`,
   };
 }
 
@@ -46,9 +41,7 @@ const AccountSetting = ({ user }) => {
 
   const [loading, setLoading] = useState(false);
   const [imageFile, setImageFile] = useState([]);
-  const [imgPath, setImgPath] = useState("");
   const [fileUrl, setFileUrl] = useState(null);
-  const [avatarUrl, setAvatarUrl] = useState("");
   const [isOverlayOpen, setIsOverlayOpen] = useState(false);
 
   // variables for input check
@@ -104,11 +97,11 @@ const AccountSetting = ({ user }) => {
   };
 
   const handleClose = () => {
-   setIsOverlayOpen(false);
+    setIsOverlayOpen(false);
     setFileUrl(null);
   };
   const onImageChange = (e) => {
-    let file = e.target.files[0];
+    const file = e.target.files[0];
     setImageFile(file);
     setFileUrl(URL.createObjectURL(file));
   };
@@ -128,7 +121,6 @@ const AccountSetting = ({ user }) => {
       const userId = pb.authStore.model.id;
       await pbService.updateUserProfile(userId, formDataUpload);
 
-      setAvatarUrl(URL.createObjectURL(imageFile));
       setImageFile(null);
       handleClose();
       alert("Picture uploaded successfully");
@@ -145,8 +137,6 @@ const AccountSetting = ({ user }) => {
     try {
       const userId = pb.authStore.model.id;
       await pbService.updateUserProfile(userId, { avatar: null });
-
-      setAvatarUrl("");
       alert("Avatar deleted successfully");
     } catch (error) {
       console.error("Error deleting avatar: ", error);
@@ -166,7 +156,13 @@ const AccountSetting = ({ user }) => {
             <div className="flex">
               {user ? (
                 <img
-                  src={import.meta.env.VITE_POCKETBASE_URL + '/api/files/users/' + user.id + '/' + user.avatar}
+                  src={
+                    import.meta.env.VITE_POCKETBASE_URL +
+                    "/api/files/users/" +
+                    user.id +
+                    "/" +
+                    user.avatar
+                  }
                   className="rounded-full object-cover w-32 h-32"
                 />
               ) : (
@@ -188,9 +184,9 @@ const AccountSetting = ({ user }) => {
             </div>
             <div className="block ml-4">
               <h3 className="font-semibold text-2xl">
-                {formData.username == "" ? formData.fullName : "@" + formData.username}
+                {formData.username === "" ? formData.fullName : "@" + formData.username}
               </h3>
-              <p className={`${formData.username == "" ? "hidden" : "text-xl"}`}>
+              <p className={`${formData.username === "" ? "hidden" : "text-xl"}`}>
                 {formData.fullName}
               </p>
             </div>
@@ -205,7 +201,7 @@ const AccountSetting = ({ user }) => {
                   }
                   signOut();
                 }}
-                className={`bg-red-500 rounded-full transition p-2 hover:scale-125`}
+                className={"bg-red-500 rounded-full transition p-2 hover:scale-125"}
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -241,104 +237,103 @@ const AccountSetting = ({ user }) => {
             >
               <p className="font-semibold text-white">Delete</p>
             </button>
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={!toggleDisable}
-                    onChange={handleFocus}
-                    color="secondary"
-                    inputProps={{ 'aria-label': 'toggle disable' }}
-                  />
-                }
-                label="Edit User Info"
-              />
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={!toggleDisable}
+                  onChange={handleFocus}
+                  color="secondary"
+                  inputProps={{ "aria-label": "toggle disable" }}
+                />
+              }
+              label="Edit User Info"
+            />
           </div>
           <div>
-            {isOverlayOpen && 
-            <div className="fixed inset-0 bg-[#231F20] bg-opacity-80 flex items-center justify-center z-40">
-            <div className="flex flex-col items-center justify-center w-2/5 border-2 bg-[#231F20] dark:border-gray-600 rounded-lg z-50 p-8">
-              <button
-                className="self-end text-gray-500 dark:text-gray-400"
-                onClick={() => setIsOverlayOpen(false)}
-              >
-                <svg
-                  className="w-12 h-12 text-gray-800 dark:text-white"
-                  aria-hidden="true"
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="24"
-                  height="24"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    stroke="currentColor"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="m15 9-6 6m0-6 6 6m6-3a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
-                  />
-                </svg>
-              </button>
-              <div>
-                {fileUrl !== null ? (
-                  <div className="w-80 h-80 rounded-full overflow-hidden my-8">
-                    <img
-                      src={fileUrl}
-                      alt="preview"
-                      className="w-80 h-80 object-cover rounded-lg"
-                    />
-                  </div>
-                ) : (
-                  <label
-                    htmlFor="dropzone-file"
-                    className="flex flex-col items-center justify-center w-80 h-80 border-2 border-gray-300 border-dashed rounded-full cursor-pointer bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:hover:border-gray-500 dark:hover:bg-gray-600"
-                  >
-                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                      <svg
-                        className="w-8 h-8 mb-4 text-gray-500 dark:text-gray-400"
-                        aria-hidden="true"
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 20 16"
-                      >
-                        <path
-                          stroke="currentColor"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth="2"
-                          d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2"
-                        />
-                      </svg>
-                      <p className="mb-2 text-sm text-gray-500 dark:text-gray-400">
-                        <span className="font-semibold">Click to upload</span>{" "}
-                        or drag and drop
-                      </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
-                        SVG, PNG, JPG or GIF (MAX. 800x400px)
-                      </p>
-                    </div>
-                    <input
-                      id="dropzone-file"
-                      type="file"
-                      className="hidden"
-                      onChange={onImageChange}
-                    />
-                  </label>
-                )}
-              </div>
-              {fileUrl && (
-                <div>
+            {isOverlayOpen && (
+              <div className="fixed inset-0 bg-[#231F20] bg-opacity-80 flex items-center justify-center z-40">
+                <div className="flex flex-col items-center justify-center w-2/5 border-2 bg-[#231F20] dark:border-gray-600 rounded-lg z-50 p-8">
                   <button
-                    className="w-96 h-12 my-8 bg-gray-500 text-white rounded-lg hover:bg-white hover:text-gray-800 text-lg font-semibold"
-                    onClick={uploadPicture}
+                    className="self-end text-gray-500 dark:text-gray-400"
+                    onClick={() => setIsOverlayOpen(false)}
                   >
-                    Upload
+                    <svg
+                      className="w-12 h-12 text-gray-800 dark:text-white"
+                      aria-hidden="true"
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="24"
+                      height="24"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        stroke="currentColor"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="m15 9-6 6m0-6 6 6m6-3a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
+                      />
+                    </svg>
                   </button>
+                  <div>
+                    {fileUrl !== null ? (
+                      <div className="w-80 h-80 rounded-full overflow-hidden my-8">
+                        <img
+                          src={fileUrl}
+                          alt="preview"
+                          className="w-80 h-80 object-cover rounded-lg"
+                        />
+                      </div>
+                    ) : (
+                      <label
+                        htmlFor="dropzone-file"
+                        className="flex flex-col items-center justify-center w-80 h-80 border-2 border-gray-300 border-dashed rounded-full cursor-pointer bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:hover:border-gray-500 dark:hover:bg-gray-600"
+                      >
+                        <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                          <svg
+                            className="w-8 h-8 mb-4 text-gray-500 dark:text-gray-400"
+                            aria-hidden="true"
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 20 16"
+                          >
+                            <path
+                              stroke="currentColor"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth="2"
+                              d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2"
+                            />
+                          </svg>
+                          <p className="mb-2 text-sm text-gray-500 dark:text-gray-400">
+                            <span className="font-semibold">Click to upload</span> or drag and drop
+                          </p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                            SVG, PNG, JPG or GIF (MAX. 800x400px)
+                          </p>
+                        </div>
+                        <input
+                          id="dropzone-file"
+                          type="file"
+                          className="hidden"
+                          onChange={onImageChange}
+                        />
+                      </label>
+                    )}
+                  </div>
+                  {fileUrl && (
+                    <div>
+                      <button
+                        className="w-96 h-12 my-8 bg-gray-500 text-white rounded-lg hover:bg-white hover:text-gray-800 text-lg font-semibold"
+                        onClick={uploadPicture}
+                      >
+                        Upload
+                      </button>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-          </div>
-            }
+              </div>
+            )}
           </div>
           <fieldset disabled={toggleDisable}>
             <form onSubmit={(e) => updateProfile(e)}>
@@ -350,10 +345,8 @@ const AccountSetting = ({ user }) => {
                 id="fullName"
                 value={formData.fullName ?? ""}
                 // save full name to formData
-                onChange={(e) =>
-                  setFormData({ ...formData, fullName: e.target.value })
-                }
-                className={`py-3 border-b-2 w-full focus:outline-none focus:ring-0 focus:border-blue-500 mb-4 ${toggleDisable ? "cursor-not-allowed opacity-50" : ""}` }
+                onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+                className={`py-3 border-b-2 w-full focus:outline-none focus:ring-0 focus:border-blue-500 mb-4 ${toggleDisable ? "cursor-not-allowed opacity-50" : ""}`}
               />
               <label htmlFor="username">Username</label>
               <input
@@ -362,8 +355,7 @@ const AccountSetting = ({ user }) => {
                 id="username"
                 value={formData.username ?? ""}
                 onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                 className={`py-3 border-b-2 w-full focus:outline-none focus:ring-0 focus:border-blue-500 mb-4 ${toggleDisable ? "cursor-not-allowed opacity-50" : ""}` }
-
+                className={`py-3 border-b-2 w-full focus:outline-none focus:ring-0 focus:border-blue-500 mb-4 ${toggleDisable ? "cursor-not-allowed opacity-50" : ""}`}
               />
               <label htmlFor="email">Email</label>
               <input
@@ -372,7 +364,7 @@ const AccountSetting = ({ user }) => {
                 id="email"
                 value={formData.email ?? ""}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className={`py-3 border-b-2 w-full focus:outline-none focus:ring-0 focus:border-blue-500 mb-4 ${toggleDisable ? "cursor-not-allowed opacity-50" : ""}` }  
+                className={`py-3 border-b-2 w-full focus:outline-none focus:ring-0 focus:border-blue-500 mb-4 ${toggleDisable ? "cursor-not-allowed opacity-50" : ""}`}
               />
               <label htmlFor="phoneNumber">Phone Number</label>
               <input
@@ -396,7 +388,7 @@ const AccountSetting = ({ user }) => {
   );
 };
 
-const sendEmailPasswordReset = async (e, email) => {
+const sendEmailPasswordReset = async (e, _email) => {
   e.preventDefault();
   const isChecked = e.target.confirm.checked;
   if (!isChecked) {
@@ -418,9 +410,7 @@ const PasswordResetRedirect = ({ email }) => {
           name="confirm"
           id="confirm"
         />
-        <h3 className="text-white text-lg mx-2">
-          I confirm and proceed to continue
-        </h3>
+        <h3 className="text-white text-lg mx-2">I confirm and proceed to continue</h3>
       </div>
       <input
         type="submit"
@@ -431,11 +421,10 @@ const PasswordResetRedirect = ({ email }) => {
 };
 
 const PasswordSetting = ({ user }) => {
-  const [event, setEvent] = useState("");
+  const [event] = useState("");
   const email = user ? user.email : "";
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
+  const newPassword = "";
+  const confirmPassword = "";
 
   const handleResetPassword = async (e) => {
     e.preventDefault();
@@ -449,12 +438,7 @@ const PasswordSetting = ({ user }) => {
       {event === "PASSWORD_RECOVERY" ? (
         <form onSubmit={handleResetPassword} className="mt-14">
           <label htmlFor="username">Username</label>
-          <input
-            type="text"
-            name="username"
-            id="username"
-            autoComplete="username"
-          />
+          <input type="text" name="username" id="username" autoComplete="username" />
           <label htmlFor="currentPassword">Current Password</label>
           <input
             autoComplete="current-password"
@@ -463,12 +447,7 @@ const PasswordSetting = ({ user }) => {
             id="currentPassword"
           />
           <label htmlFor="newPassword">New Password</label>
-          <input
-            autoComplete="new-password"
-            type="password"
-            name="newPassword"
-            id="newPassword"
-          />
+          <input autoComplete="new-password" type="password" name="newPassword" id="newPassword" />
           <label htmlFor="confirmPassword">Confirm Password</label>
           <input
             autoComplete="new-password"
@@ -497,24 +476,22 @@ const Account = () => {
   const { user } = useContext(UserContext);
 
   return (
-    <Box
-      sx={{ backgroundColor: 'background.default', display: 'flex', marginTop: 16 }}
-    >
+    <Box sx={{ backgroundColor: "background.default", display: "flex", marginTop: 16 }}>
       <Tabs
         orientation="vertical"
         value={value}
         onChange={handleChange}
         aria-label="Vertical tabs example"
-        sx={{ borderRight: 1, borderColor: 'primary.main', minWidth: '200px' }}
+        sx={{ borderRight: 1, borderColor: "primary.main", minWidth: "200px" }}
       >
-        <Tab sx={{fontWeight: '600'}} label="Account Settings" {...a11yProps(0)} />
-        <Tab sx={{fontWeight: '600'}} label="Password Reset" {...a11yProps(1)} />
+        <Tab sx={{ fontWeight: "600" }} label="Account Settings" {...a11yProps(0)} />
+        <Tab sx={{ fontWeight: "600" }} label="Password Reset" {...a11yProps(1)} />
       </Tabs>
       <TabPanel value={value} index={0}>
         <AccountSetting user={user} />
       </TabPanel>
       <TabPanel value={value} index={1}>
-        <PasswordSetting user={user} />  
+        <PasswordSetting user={user} />
       </TabPanel>
     </Box>
   );

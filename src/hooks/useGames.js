@@ -50,7 +50,9 @@ export default function useGames(gameId = null) {
       if (result.record && result.record.id) {
         try {
           localStorage.setItem("game_player_id", result.record.id);
-        } catch (_) {}
+        } catch {
+          // ignore
+        }
       }
 
       return {
@@ -65,17 +67,16 @@ export default function useGames(gameId = null) {
   }
 
   // Leave a game: remove the game_players record for this user and game
-  async function leaveGame(gameIdArg = null, userArg = null) {
+  async function leaveGame(gameIdArg = null, _userArg = null) {
     const targetGameId = gameIdArg || (game && game.id) || null;
-    const targetUser = userArg || user;
-    if (!targetGameId) return { ok: false, message: "missing game" };
+    if (!targetGameId) {return { ok: false, message: "missing game" };}
 
     try {
       // Use stored game_player_id to delete the specific record
       const storedId = (() => {
         try {
           return localStorage.getItem("game_player_id");
-        } catch (_) {
+        } catch {
           return null;
         }
       })();
@@ -84,7 +85,9 @@ export default function useGames(gameId = null) {
           await pbService.deleteGamePlayer(storedId);
           try {
             localStorage.removeItem("game_player_id");
-          } catch (_) {}
+          } catch {
+            // ignore
+          }
           return { ok: true };
         } catch (err) {
           console.warn("Failed to delete by stored id", err);
@@ -108,12 +111,6 @@ export default function useGames(gameId = null) {
     const roomCodeLength = 6;
 
     const roomCode = generateRoomCode(roomCodeLength);
-
-    console.log("deckIdToUse:", deckIdToUse);
-
-    console.log("roomCodeLength:", roomCodeLength);
-
-    console.log("roomCode:", roomCode);
 
     // Guards for missing user or deck
 
